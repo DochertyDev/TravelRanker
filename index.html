@@ -1526,7 +1526,16 @@ function openAddEditModal(destId){
       <div class="modal-body">
         <div class="form-group">
           <label>Name</label>
-          <input type="text" id="f-name" value="${escapeHtml(dest.name)}" placeholder="e.g. Kyoto, Japan">
+          <div class="field-row" style="gap:8px;">
+            <input type="text" id="f-name" value="${escapeHtml(dest.name)}" placeholder="e.g. Kyoto, Japan" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-alt);">
+            <button class="btn btn-primary" id="f-loc-lookup" style="white-space:nowrap;">Lookup</button>
+          </div>
+          <div class="geocode-status" id="f-loc-status"></div>
+          <div class="divider-or">or enter coordinates manually</div>
+          <div class="form-grid-2">
+            <input type="number" step="any" id="f-lat" placeholder="Latitude" value="${workingLat ?? ''}" style="padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-alt);">
+            <input type="number" step="any" id="f-long" placeholder="Longitude" value="${workingLong ?? ''}" style="padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-alt);">
+          </div>
         </div>
         <div class="form-group">
           <label>Image</label>
@@ -1543,19 +1552,6 @@ function openAddEditModal(destId){
             <select id="f-cost">
               ${[1,2,3,4,5].map(n => `<option value="${n}" ${dest.cost===n?'selected':''}>${'$'.repeat(n)}</option>`).join('')}
             </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Location</label>
-          <div class="field-row">
-            <input type="text" id="f-loc-name" placeholder="Type a city or country to look up">
-            <button class="btn btn-primary" id="f-loc-lookup">Look Up</button>
-          </div>
-          <div class="geocode-status" id="f-loc-status"></div>
-          <div class="divider-or">or enter coordinates manually</div>
-          <div class="form-grid-2">
-            <input type="number" step="any" id="f-lat" placeholder="Latitude" value="${workingLat ?? ''}">
-            <input type="number" step="any" id="f-long" placeholder="Longitude" value="${workingLong ?? ''}">
           </div>
         </div>
         <div class="form-group">
@@ -1616,18 +1612,20 @@ function openAddEditModal(destId){
     }
   };
 
-  // Geocode lookup
+  // Geocode lookup — uses the Name field directly
   modal.querySelector('#f-loc-lookup').onclick = async () => {
-    const name = modal.querySelector('#f-loc-name').value.trim();
+    const name = modal.querySelector('#f-name').value.trim();
     const status = modal.querySelector('#f-loc-status');
-    if(!name){ status.textContent = 'Enter a place name first.'; status.className = 'geocode-status err'; return; }
+    if(!name){ status.textContent = 'Enter a destination name first.'; status.className = 'geocode-status err'; return; }
     status.textContent = 'Looking up location…';
     status.className = 'geocode-status';
     try {
       const loc = await geocodeLocation(name);
       modal.querySelector('#f-lat').value = loc.lat;
       modal.querySelector('#f-long').value = loc.long;
-      status.textContent = 'Found it. Coordinates filled in below.';
+      workingLat = loc.lat;
+      workingLong = loc.long;
+      status.textContent = 'Coordinates filled in below.';
       status.className = 'geocode-status ok';
     } catch(err){
       status.textContent = "Couldn't find that location. Could be no internet, an unrecognized name, or a rate limit. Enter coordinates manually below.";
