@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wayfarer - Travel Destination Ranker</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --surface-alt: #fbfbfd;
+    --border: #e2e2e6;
+    --text: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent: #0071e3;
+    --accent-soft: #e8f2fe;
+    --danger: #ff3b30;
+    --radius: 14px;
+    --radius-sm: 9px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 6px 20px rgba(0,0,0,0.08);
+    --shadow-lg: 0 20px 50px rgba(0,0,0,0.16);
+
+    --tier-s: #ff375f;
+    --tier-a: #ff9f0a;
+    --tier-b: #ffd60a;
+    --tier-c: #30d158;
+    --tier-d: #64d2ff;
+    --tier-f: #8e8e93;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 { margin: 0; letter-spacing: -0.02em; font-weight: 600; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+  }
+
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 15px;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 4px; }
+
+  /* ---------- App Shell ---------- */
+  #app {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface-alt);
+    border-right: 1px solid var(--border);
+    padding: 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .brand {
+    font-size: 19px;
+    font-weight: 700;
+    padding: 0 12px 22px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+  }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background 0.15s ease, color 0.15s ease;
+    text-align: left;
+    width: 100%;
+  }
+  .nav-item:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .nav-spacer { flex: 1; }
+
+  .add-btn-sidebar {
+    margin-top: 10px;
+    background: var(--accent);
+    color: white;
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .add-btn-sidebar:hover { opacity: 0.88; }
+  .add-btn-sidebar:active { transform: scale(0.97); }
+
+  main {
+    flex: 1;
+    padding: 32px 40px 90px 40px;
+    max-width: 1180px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .view-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .view-header h1 { font-size: 28px; }
+  .view-header p { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+
+  /* Bottom tab bar for narrow screens */
+  .tabbar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(251,251,253,0.92);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    z-index: 40;
+  }
+  .tabbar button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 10px;
+    flex: 1;
+  }
+  .tabbar button.active { color: var(--accent); }
+  .tabbar svg { width: 21px; height: 21px; }
+
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .tabbar { display: flex; }
+    main { padding: 20px 16px 84px 16px; }
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+
+  .dest-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    cursor: grab;
+    width: 148px;
+    flex-shrink: 0;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .dest-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .dest-card.dragging { opacity: 0.4; }
+  .dest-card .thumb {
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b0b0b6;
+    font-size: 26px;
+  }
+  .dest-card .info { padding: 9px 10px 11px 10px; }
+  .dest-card .name {
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dest-card .meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 5px;
+  }
+  .season-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .cost-dots { display: flex; gap: 2px; }
+  .cost-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
+  .cost-dots span.filled { background: #ffb100; }
+
+  .visited-badge {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .visited-badge svg { width: 12px; height: 12px; color: #30d158; }
+
+  .rank-badge {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: rgba(29,29,31,0.82);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .tier-pos-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 20px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .card-delete-btn {
+    position: absolute;
+    top: 74px;
+    right: 7px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(29,29,31,0.72);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    z-index: 2;
+  }
+  .card-delete-btn svg { width: 12px; height: 12px; }
+  .card-delete-btn:hover { background: var(--danger); }
+  .dest-card:hover .card-delete-btn { opacity: 1; }
+  @media (hover: none) { .card-delete-btn { opacity: 1; background: rgba(29,29,31,0.55); } }
+
+  /* ---------- Tier List ---------- */
+  .tier-row {
+    display: flex;
+    margin-bottom: 14px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+  .tier-label {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+  }
+  .tier-drop {
+    flex: 1;
+    background: var(--surface);
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 132px;
+    align-items: flex-start;
+    transition: background 0.15s ease;
+  }
+  .tier-drop.drag-over { background: var(--accent-soft); }
+  .tier-drop.empty::before {
+    content: "Drop destinations here";
+    color: #c7c7cc;
+    font-size: 13px;
+    align-self: center;
+    margin: auto;
+  }
+
+  .unranked-section {
+    margin-top: 30px;
+  }
+  .unranked-section h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .unranked-drop {
+    background: var(--surface-alt);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 132px;
+  }
+  .unranked-drop.drag-over { background: var(--accent-soft); }
+
+  /* ---------- Empty States ---------- */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state h3 { color: var(--text); margin-bottom: 6px; font-size: 17px; }
+  .empty-state p { font-size: 14px; max-width: 320px; margin: 0 auto; }
+  .empty-state button {
+    margin-top: 16px;
+    background: var(--accent);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* ---------- Trip Matcher ---------- */
+  .matcher-picker {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .matcher-picker select {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    min-width: 240px;
+  }
+  .match-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+  }
+  .match-row .rank {
+    font-weight: 700;
+    color: var(--text-secondary);
+    width: 22px;
+    text-align: center;
+    font-size: 14px;
+  }
+  .match-row .thumb-sm {
+    width: 46px; height: 46px; border-radius: 10px;
+    background-size: cover; background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    flex-shrink: 0;
+  }
+  .match-row .details { flex: 1; min-width: 0; }
+  .match-row .details .name { font-weight: 600; font-size: 14.5px; }
+  .match-row .details .sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  .match-score-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; width: 90px; flex-shrink: 0; }
+  .match-score-bar { width: 90px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .match-score-bar .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .match-score-num { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+  /* ---------- History ---------- */
+  .history-entry {
+    display: flex;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    align-items: center;
+  }
+  .history-entry .thumb-sm {
+    width: 54px; height: 54px; border-radius: 10px;
+    background-size: cover; background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    flex-shrink: 0;
+  }
+  .history-entry .body { flex: 1; min-width: 0; }
+  .history-entry .top-line { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .history-entry .name { font-weight: 600; font-size: 15px; }
+  .history-entry .date { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+  .history-entry .summary { font-size: 13.5px; color: var(--text-secondary); margin-top: 4px; }
+  .stars { color: #ffb100; font-size: 12.5px; letter-spacing: 1px; margin-top: 3px; }
+
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .icon-btn:hover { background: #fdeceb; color: var(--danger); }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 32px;
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    font-size: 26px;
+    z-index: 30;
+    transition: transform 0.15s ease;
+  }
+  .fab:hover { transform: scale(1.06); }
+  @media (max-width: 860px) { .fab { bottom: 78px; right: 18px; width: 50px; height: 50px; } }
+
+  /* ---------- Settings ---------- */
+  .settings-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .settings-section h3 { font-size: 15px; margin-bottom: 4px; }
+  .settings-section .desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; }
+  .field-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .field-row input[type=text], .field-row input[type=number] {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex: 1;
+    min-width: 140px;
+  }
+  .btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: #fdeceb; color: var(--danger); }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .unit-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .unit-toggle button { padding: 6px 16px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); min-width: 108px; text-align: center; }
+  .unit-toggle button.active { background: var(--accent); color: white; }
+  .hint { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+  .status-msg { font-size: 12.5px; margin-top: 8px; }
+  .status-msg.ok { color: #1a8a3d; }
+  .status-msg.err { color: var(--danger); }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+    z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 { font-size: 17px; }
+  .modal-close { font-size: 20px; color: var(--text-secondary); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items:center; justify-content:center; }
+  .modal-close:hover { background: var(--bg); }
+  .modal-body { padding: 22px; max-height: 70vh; overflow-y: auto; }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+  .form-group input[type=text], .form-group input[type=number], .form-group input[type=date], .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-alt);
+  }
+  .form-group textarea { resize: vertical; min-height: 64px; font-family: inherit; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .star-picker { display: flex; gap: 4px; }
+  .star-picker button { font-size: 20px; color: #d2d2d7; }
+  .star-picker button.filled { color: #ffb100; }
+
+  .rating-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .rating-row .cat-name { font-size: 14px; }
+
+  .image-drop {
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+    background: var(--surface-alt);
+    position: relative;
+    overflow: hidden;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .image-drop img { max-height: 140px; max-width: 100%; border-radius: 8px; }
+
+  .geocode-status { font-size: 12.5px; margin-top: 6px; }
+  .divider-or { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 10px 0; }
+
+  .detail-hero {
+    height: 190px;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    margin-bottom: 16px;
+  }
+  .detail-tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--bg); color: var(--text-secondary); }
+  .history-log-item { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; font-size: 13px; }
+
+  .confirm-box {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 22px;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .confirm-box p { font-size: 14px; color: var(--text-secondary); margin: 8px 0 18px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   DATA LAYER
+   ============================================================ */
+const STORAGE_KEY = 'wayfarer_data_v1';
+const TIERS = ['S','A','B','C','D','F'];
+const SEASONS = ['Spring','Summer','Fall','Winter','Year-round'];
+const RATING_CATEGORIES = [
+  {key:'food', label:'Food'},
+  {key:'weather', label:'Weather'},
+  {key:'entertainment', label:'Entertainment'},
+  {key:'culture', label:'Culture'},
+  {key:'relaxation', label:'Relaxation'}
+];
+
+function uid(){ return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+
+function defaultData(){
+  return {
+    destinations: [],
+    history: [],
+    settings: { homeLocation: { name: '', lat: null, long: null }, unit: 'km' }
+  };
+}
+
+let DATA = loadData();
+
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultData();
+    const parsed = JSON.parse(raw);
+    // Ensure shape integrity across versions
+    const d = defaultData();
+    const result = Object.assign(d, parsed, {
+      destinations: parsed.destinations || [],
+      history: parsed.history || [],
+      settings: Object.assign(d.settings, parsed.settings || {})
+    });
+    result.destinations.forEach((dest, i) => {
+      if(typeof dest.order !== 'number') dest.order = i;
+    });
+    return result;
+  } catch(e){
+    console.error('Failed to load data', e);
+    return defaultData();
+  }
+}
+
+function saveData(){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  } catch(e){
+    console.error('Failed to save data', e);
+    alert('Could not save your data. Storage may be full. Try removing an image or two, or exporting a backup.');
+  }
+}
+
+/* ============================================================
+   GEO UTILITIES
+   ============================================================ */
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+function kmToMiles(km){ return km * 0.621371; }
+function formatDistance(km){
+  const unit = DATA.settings.unit;
+  if(unit === 'mi') return Math.round(kmToMiles(km)).toLocaleString() + ' mi';
+  return Math.round(km).toLocaleString() + ' km';
+}
+
+async function geocodeLocation(name){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(name);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if(!res.ok) throw new Error('Geocoding request failed');
+  const data = await res.json();
+  if(!data || !data.length) throw new Error('Location not found');
+  return { lat: parseFloat(data[0].lat), long: parseFloat(data[0].lon) };
+}
+
+/* ============================================================
+   IMAGE HANDLING
+   ============================================================ */
+function resizeImageFile(file, maxDim=1200, quality=0.82){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   APP STATE / ROUTER
+   ============================================================ */
+let currentView = 'tierlist';
+let modalStack = [];
+
+function setView(v){
+  currentView = v;
+  render();
+}
+
+function openModal(node){
+  modalStack.push(node);
+  render();
+}
+function closeModal(){
+  modalStack.pop();
+  render();
+}
+function closeAllModals(){
+  modalStack = [];
+  render();
+}
+
+/* ============================================================
+   ICONS (inline SVG, minimal line style)
+   ============================================================ */
+const ICONS = {
+  tier: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="4" rx="1.5"/><rect x="3" y="10" width="14" height="4" rx="1.5"/><rect x="3" y="16" width="10" height="4" rx="1.5"/></svg>`,
+  matcher: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="3.2"/><circle cx="17" cy="7" r="3.2"/><circle cx="17" cy="17" r="3.2"/><path d="M9.8 10.6 14.5 8.2M9.8 13.4 14.5 15.8"/></svg>`,
+  history: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l3 2"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.6-2-3.4-2.4.7a8 8 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a8 8 0 0 0-1.7 1l-2.4-.7-2 3.4L6.2 11a7.9 7.9 0 0 0 0 2l-2 1.6 2 3.4 2.4-.7a8 8 0 0 0 1.7 1L9.8 21h4l.5-2.7a8 8 0 0 0 1.7-1l2.4.7 2-3.4-2-1.6z"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6.5 7 7.3 19.5A1.5 1.5 0 0 0 8.8 21h6.4a1.5 1.5 0 0 0 1.5-1.5L17.5 7"/><path d="M10 11v6M14 11v6"/></svg>`
+};
+
+/* ============================================================
+   RENDER: SHELL
+   ============================================================ */
+function el(html){
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  const sidebar = el(`
+    <div class="sidebar">
+      <div class="brand"><span class="dot"></span>Wayfarer</div>
+      ${navItem('tierlist', ICONS.tier, 'Tier List')}
+      ${navItem('matcher', ICONS.matcher, 'Trip Matcher')}
+      ${navItem('history', ICONS.history, 'History')}
+      <div class="nav-spacer"></div>
+      ${navItem('settings', ICONS.settings, 'Settings')}
+      <button class="add-btn-sidebar" id="btn-add-sidebar">${ICONS.plus} Add Destination</button>
+    </div>
+  `);
+  app.appendChild(sidebar);
+  sidebar.querySelector('#btn-add-sidebar').onclick = () => openAddEditModal();
+
+  const main = el(`<main></main>`);
+  main.appendChild(renderCurrentView());
+  app.appendChild(main);
+
+  const tabbar = el(`
+    <div class="tabbar">
+      ${tabItem('tierlist', ICONS.tier, 'Tiers')}
+      ${tabItem('matcher', ICONS.matcher, 'Match')}
+      ${tabItem('history', ICONS.history, 'History')}
+      ${tabItem('settings', ICONS.settings, 'Settings')}
+    </div>
+  `);
+  app.appendChild(tabbar);
+
+  const fab = el(`<button class="fab" title="Add destination">${ICONS.plus}</button>`);
+  fab.onclick = () => openAddEditModal();
+  app.appendChild(fab);
+
+  modalStack.forEach(node => app.appendChild(node));
+}
+
+function navItem(view, icon, label){
+  return `<button class="nav-item ${currentView===view?'active':''}" data-view="${view}">${icon}<span>${label}</span></button>`;
+}
+function tabItem(view, icon, label){
+  return `<button class="${currentView===view?'active':''}" data-view="${view}">${icon}<span>${label}</span></button>`;
+}
+
+// Delegate nav clicks after render via event delegation on document
+document.addEventListener('click', (e) => {
+  const navBtn = e.target.closest('[data-view]');
+  if(navBtn){ setView(navBtn.getAttribute('data-view')); }
+});
+
+function renderCurrentView(){
+  if(currentView === 'tierlist') return renderTierListView();
+  if(currentView === 'matcher') return renderMatcherView();
+  if(currentView === 'history') return renderHistoryView();
+  if(currentView === 'settings') return renderSettingsView();
+  return el('<div></div>');
+}
+
+/* ============================================================
+   DESTINATION CARD
+   ============================================================ */
+function destCardEl(dest, ranks){
+  const showRanks = ranks && ranks.tierPos != null;
+  const card = el(`
+    <div class="dest-card" draggable="true" data-id="${dest.id}">
+      ${showRanks ? `<div class="rank-badge" title="Overall rank across the whole tier list">#${ranks.overallRank}</div>` : ''}
+      <div class="thumb" style="${dest.image ? `background-image:url(${dest.image})` : ''}">${dest.image ? '' : '🌍'}</div>
+      <div class="info">
+        <div class="name">${escapeHtml(dest.name || 'Untitled')}</div>
+        <div class="meta-row">
+          <div style="display:flex;align-items:center;gap:5px;min-width:0;">
+            <span class="season-badge">${dest.season || '-'}</span>
+            ${showRanks ? `<span class="tier-pos-badge" title="Position within this tier, left to right">#${ranks.tierPos}</span>` : ''}
+          </div>
+          <span class="cost-dots">${costDots(dest.cost)}</span>
+        </div>
+      </div>
+      ${dest.visited ? `<div class="visited-badge">${ICONS.check}</div>` : ''}
+      <button class="card-delete-btn" title="Delete destination" data-delete-id="${dest.id}">${ICONS.trash}</button>
+    </div>
+  `);
+  card.addEventListener('click', (e) => {
+    if(e.target.closest('[data-delete-id]')) return;
+    openDetailModal(dest.id);
+  });
+  card.querySelector('[data-delete-id]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    confirmDeleteDestination(dest.id);
+  });
+  card.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', dest.id);
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  card.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+  card.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if(!draggedId || draggedId === dest.id) return;
+    const zone = card.closest('[data-tier]');
+    if(!zone) return;
+    const tier = zone.getAttribute('data-tier');
+    const rect = card.getBoundingClientRect();
+    const insertAfter = (e.clientX - rect.left) > rect.width / 2;
+    reorderWithinTier(draggedId, tier, dest.id, insertAfter);
+  });
+  return card;
+}
+
+function tierGroup(tier){
+  return DATA.destinations.filter(d => {
+    const dTier = d.tier || 'unranked';
+    return dTier === tier;
+  });
+}
+
+function nextOrderFor(tier){
+  const group = tierGroup(tier);
+  return group.length ? Math.max(...group.map(d => d.order || 0)) + 1 : 0;
+}
+
+function reorderWithinTier(draggedId, tier, targetId, insertAfter){
+  const dragged = DATA.destinations.find(d => d.id === draggedId);
+  if(!dragged) return;
+  const group = tierGroup(tier).filter(d => d.id !== draggedId).sort((a,b) => a.order - b.order);
+  let idx = group.findIndex(d => d.id === targetId);
+  if(idx === -1) idx = group.length;
+  else if(insertAfter) idx += 1;
+  group.splice(idx, 0, dragged);
+  group.forEach((d, i) => { d.order = i; });
+  dragged.tier = tier;
+  saveData();
+  render();
+}
+
+function confirmDeleteDestination(destId){
+  const dest = DATA.destinations.find(d => d.id === destId);
+  if(!dest) return;
+  openConfirm(
+    'Delete this destination?',
+    `This will permanently remove "${dest.name || 'this destination'}" and any linked history entries. This cannot be undone.`,
+    () => {
+      DATA.destinations = DATA.destinations.filter(d => d.id !== destId);
+      DATA.history = DATA.history.filter(h => h.destinationId !== destId);
+      saveData();
+      closeAllModals();
+    }
+  );
+}
+
+function costDots(cost){
+  let out = '';
+  for(let i=1;i<=5;i++){ out += `<span class="${i<=cost?'filled':''}"></span>`; }
+  return out;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+/* ============================================================
+   TIER LIST VIEW
+   ============================================================ */
+const TIER_COLORS = { S:'var(--tier-s)', A:'var(--tier-a)', B:'var(--tier-b)', C:'var(--tier-c)', D:'var(--tier-d)', F:'var(--tier-f)' };
+
+function renderTierListView(){
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="view-header">
+      <div><h1>Tier List</h1><p>Drag destinations between tiers to rank them.</p></div>
+    </div>
+  `));
+
+  if(DATA.destinations.length === 0){
+    wrap.appendChild(emptyState('🗺️', 'No destinations yet', 'Add your first destination to start building your tier list.', 'Add Destination', () => openAddEditModal()));
+    return wrap;
+  }
+
+  const list = el('<div></div>');
+  let overallCounter = 0;
+
+  TIERS.forEach(tier => {
+    const dests = tierGroup(tier).sort((a,b) => a.order - b.order);
+    const row = el(`
+      <div class="tier-row">
+        <div class="tier-label" style="background:${TIER_COLORS[tier]}">${tier}</div>
+        <div class="tier-drop ${dests.length===0?'empty':''}" data-tier="${tier}"></div>
+      </div>
+    `);
+    const dropZone = row.querySelector('.tier-drop');
+    dests.forEach((d, i) => {
+      overallCounter += 1;
+      dropZone.appendChild(destCardEl(d, { tierPos: i + 1, overallRank: overallCounter }));
+    });
+    attachDropZone(dropZone, tier);
+    list.appendChild(row);
+  });
+
+  const unranked = tierGroup('unranked').sort((a,b) => a.order - b.order);
+  const unrankedSection = el(`
+    <div class="unranked-section">
+      <h3>Unranked</h3>
+      <div class="unranked-drop" data-tier="unranked"></div>
+    </div>
+  `);
+  const uZone = unrankedSection.querySelector('.unranked-drop');
+  unranked.forEach(d => uZone.appendChild(destCardEl(d)));
+  attachDropZone(uZone, 'unranked');
+  list.appendChild(unrankedSection);
+
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function attachDropZone(zone, tier){
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const id = e.dataTransfer.getData('text/plain');
+    const dest = DATA.destinations.find(d => d.id === id);
+    if(dest){
+      const group = tierGroup(tier).filter(d => d.id !== id);
+      const maxOrder = group.length ? Math.max(...group.map(d => d.order || 0)) : -1;
+      dest.tier = tier;
+      dest.order = maxOrder + 1;
+      saveData();
+      render();
+    }
+  });
+}
+
+function emptyState(icon, title, desc, btnLabel, onClick){
+  const node = el(`
+    <div class="empty-state">
+      <div class="icon">${icon}</div>
+      <h3>${title}</h3>
+      <p>${desc}</p>
+      ${btnLabel ? `<button>${btnLabel}</button>` : ''}
+    </div>
+  `);
+  if(btnLabel){ node.querySelector('button').onclick = onClick; }
+  return node;
+}
+
+/* ============================================================
+   TRIP MATCHER VIEW
+   ============================================================ */
+let matcherBaseId = null;
+
+function renderMatcherView(){
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="view-header">
+      <div><h1>Trip Matcher</h1><p>Find destinations that pair well with a home base for your trip.</p></div>
+    </div>
+  `));
+
+  if(DATA.destinations.length < 2){
+    wrap.appendChild(emptyState('🧭', 'Add more destinations', 'You need at least two destinations with coordinates to find pairings.', DATA.destinations.length===0?'Add Destination':null, () => openAddEditModal()));
+    return wrap;
+  }
+
+  if(!matcherBaseId || !DATA.destinations.find(d=>d.id===matcherBaseId)){
+    matcherBaseId = DATA.destinations[0].id;
+  }
+
+  const picker = el(`
+    <div class="matcher-picker">
+      <select id="matcher-select"></select>
+    </div>
+  `);
+  const select = picker.querySelector('select');
+  DATA.destinations.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name || 'Untitled';
+    if(d.id === matcherBaseId) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.onchange = () => { matcherBaseId = select.value; render(); };
+  wrap.appendChild(picker);
+
+  const base = DATA.destinations.find(d => d.id === matcherBaseId);
+  const others = DATA.destinations.filter(d => d.id !== matcherBaseId);
+
+  if(base.location.lat == null || base.location.long == null){
+    wrap.appendChild(el(`<p style="color:var(--text-secondary);font-size:13.5px;">This destination has no coordinates set yet. Edit it and add a location to see matches.</p>`));
+    return wrap;
+  }
+
+  const scored = others.map(d => {
+    if(d.location.lat == null || d.location.long == null){
+      return { dest: d, score: null, distKm: null };
+    }
+    const distKm = haversineKm(base.location.lat, base.location.long, d.location.lat, d.location.long);
+    // Distance score: closer is better. Normalize against a generous max range (20,000km ~ antipodal-ish).
+    const distScore = Math.max(0, 1 - (distKm / 20000));
+    const seasonScore = seasonsCompatible(base.season, d.season) ? 1 : 0.3;
+    const matchScore = (distScore * 0.7 + seasonScore * 0.3) * 100;
+    return { dest: d, score: matchScore, distKm };
+  }).sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
+
+  const list = el('<div></div>');
+  scored.forEach((s, i) => {
+    if(s.score === null){
+      list.appendChild(el(`
+        <div class="match-row" style="opacity:0.55">
+          <div class="rank">${i+1}</div>
+          <div class="thumb-sm" style="${s.dest.image?`background-image:url(${s.dest.image})`:''}"></div>
+          <div class="details">
+            <div class="name">${escapeHtml(s.dest.name)}</div>
+            <div class="sub">No coordinates set, can't compute match</div>
+          </div>
+        </div>
+      `));
+      return;
+    }
+    const row = el(`
+      <div class="match-row">
+        <div class="rank">${i+1}</div>
+        <div class="thumb-sm" style="${s.dest.image?`background-image:url(${s.dest.image})`:''}"></div>
+        <div class="details">
+          <div class="name">${escapeHtml(s.dest.name)}</div>
+          <div class="sub">${formatDistance(s.distKm)} away · ${base.season || '-'} vs ${s.dest.season || '-'}</div>
+        </div>
+        <div class="match-score-wrap">
+          <div class="match-score-num">${Math.round(s.score)}%</div>
+          <div class="match-score-bar"><div class="fill" style="width:${Math.round(s.score)}%"></div></div>
+        </div>
+      </div>
+    `);
+    row.style.cursor = 'pointer';
+    row.onclick = () => openDetailModal(s.dest.id);
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+
+  return wrap;
+}
+
+function seasonsCompatible(a, b){
+  if(!a || !b) return false;
+  if(a === b) return true;
+  if(a === 'Year-round' || b === 'Year-round') return true;
+  return false;
+}
+
+/* ============================================================
+   HISTORY VIEW
+   ============================================================ */
+function renderHistoryView(){
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="view-header">
+      <div><h1>History</h1><p>A log of the trips you've actually taken.</p></div>
+      <button class="btn btn-primary" id="btn-add-history">Log a Trip</button>
+    </div>
+  `));
+  wrap.querySelector('#btn-add-history').onclick = () => openHistoryModal();
+
+  if(DATA.history.length === 0){
+    wrap.appendChild(emptyState('📓', 'No trips logged yet', 'Once you visit a destination, log it here to keep a record of how it went.', DATA.destinations.length ? 'Log a Trip' : null, () => openHistoryModal()));
+    return wrap;
+  }
+
+  const sorted = [...DATA.history].sort((a,b) => new Date(b.date) - new Date(a.date));
+  const list = el('<div></div>');
+  sorted.forEach(entry => {
+    const dest = DATA.destinations.find(d => d.id === entry.destinationId);
+    const row = el(`
+      <div class="history-entry">
+        <div class="thumb-sm" style="${dest && dest.image ? `background-image:url(${dest.image})` : ''}"></div>
+        <div class="body">
+          <div class="top-line">
+            <span class="name">${escapeHtml(dest ? dest.name : 'Unknown destination')}</span>
+            <span class="date">${formatDate(entry.date)}</span>
+          </div>
+          <div class="stars">${'★'.repeat(entry.rating)}${'☆'.repeat(5-entry.rating)}</div>
+          <div class="summary">${escapeHtml(entry.summary || '')}</div>
+        </div>
+        <button class="icon-btn" title="Delete entry" data-history-id="${entry.id}">${ICONS.trash}</button>
+      </div>
+    `);
+    const body = row.querySelector('.body');
+    body.style.cursor = dest ? 'pointer' : 'default';
+    if(dest) body.onclick = () => openDetailModal(dest.id);
+    row.querySelector('[data-history-id]').onclick = (e) => {
+      e.stopPropagation();
+      confirmDeleteHistoryEntry(entry.id);
+    };
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function confirmDeleteHistoryEntry(entryId, afterDelete){
+  openConfirm(
+    'Delete this trip entry?',
+    'This will permanently remove this log entry. This cannot be undone.',
+    () => {
+      DATA.history = DATA.history.filter(h => h.id !== entryId);
+      saveData();
+      closeModal();
+      if(afterDelete) afterDelete();
+      render();
+    }
+  );
+}
+
+function formatDate(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d)) return dateStr;
+  return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+}
+
+/* ============================================================
+   SETTINGS VIEW
+   ============================================================ */
+function renderSettingsView(){
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="view-header">
+      <div><h1>Settings</h1><p>Manage your home base, units, and data.</p></div>
+    </div>
+  `));
+
+  const home = DATA.settings.homeLocation;
+  const homeSection = el(`
+    <div class="settings-section">
+      <h3>Home Base</h3>
+      <div class="desc">Used as the fixed starting point for all distance calculations.</div>
+      <div class="field-row">
+        <input type="text" id="home-name" placeholder="e.g. Halifax, Nova Scotia" value="${escapeHtml(home.name)}">
+        <button class="btn btn-primary" id="home-lookup">Look Up</button>
+      </div>
+      <div class="geocode-status" id="home-status"></div>
+      <div class="divider-or">or enter coordinates manually</div>
+      <div class="field-row">
+        <input type="number" step="any" id="home-lat" placeholder="Latitude" value="${home.lat ?? ''}">
+        <input type="number" step="any" id="home-long" placeholder="Longitude" value="${home.long ?? ''}">
+      </div>
+      <div class="hint">${home.lat != null ? `Currently set to ${home.lat.toFixed(3)}, ${home.long.toFixed(3)}${home.name ? ' (' + escapeHtml(home.name) + ')' : ''}` : 'No home location set yet.'}</div>
+      <div style="margin-top:14px;"><button class="btn btn-primary" id="home-save">Save Home Base</button></div>
+    </div>
+  `);
+  wrap.appendChild(homeSection);
+
+  homeSection.querySelector('#home-lookup').onclick = async () => {
+    const nameInput = homeSection.querySelector('#home-name');
+    const status = homeSection.querySelector('#home-status');
+    const name = nameInput.value.trim();
+    if(!name){ status.textContent = 'Enter a place name first.'; status.className = 'geocode-status err'; return; }
+    status.textContent = 'Looking up location…';
+    status.className = 'geocode-status';
+    try {
+      const loc = await geocodeLocation(name);
+      homeSection.querySelector('#home-lat').value = loc.lat;
+      homeSection.querySelector('#home-long').value = loc.long;
+      status.textContent = 'Found it. Review below and save.';
+      status.className = 'geocode-status ok';
+    } catch(e){
+      status.textContent = "Couldn't find that location. Enter coordinates manually below.";
+      status.className = 'geocode-status err';
+    }
+  };
+
+  homeSection.querySelector('#home-save').onclick = () => {
+    const name = homeSection.querySelector('#home-name').value.trim();
+    const lat = parseFloat(homeSection.querySelector('#home-lat').value);
+    const long = parseFloat(homeSection.querySelector('#home-long').value);
+    if(isNaN(lat) || isNaN(long)){ alert('Please provide valid coordinates (via lookup or manual entry).'); return; }
+    DATA.settings.homeLocation = { name, lat, long };
+    saveData();
+    render();
+  };
+
+  // Units
+  const unitSection = el(`
+    <div class="settings-section">
+      <h3>Distance Units</h3>
+      <div class="desc">Choose how distances are displayed throughout the app.</div>
+      <div class="unit-toggle">
+        <button data-unit="km" class="${DATA.settings.unit==='km'?'active':''}">Kilometers</button>
+        <button data-unit="mi" class="${DATA.settings.unit==='mi'?'active':''}">Miles</button>
+      </div>
+    </div>
+  `);
+  unitSection.querySelectorAll('[data-unit]').forEach(btn => {
+    btn.onclick = () => { DATA.settings.unit = btn.getAttribute('data-unit'); saveData(); render(); };
+  });
+  wrap.appendChild(unitSection);
+
+  // Data management
+  const dataSection = el(`
+    <div class="settings-section">
+      <h3>Your Data</h3>
+      <div class="desc">Back up your destinations and history, move them to another device, or start fresh.</div>
+      <div class="field-row">
+        <button class="btn btn-secondary" id="export-btn">Export Data (.json)</button>
+        <button class="btn btn-secondary" id="import-btn">Import Data</button>
+        <button class="btn btn-danger" id="reset-btn">Clear All Data</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+      <div class="status-msg" id="data-status"></div>
+    </div>
+  `);
+  dataSection.querySelector('#export-btn').onclick = exportData;
+  const fileInput = dataSection.querySelector('#import-file');
+  dataSection.querySelector('#import-btn').onclick = () => fileInput.click();
+  fileInput.onchange = (e) => importData(e.target.files[0], dataSection.querySelector('#data-status'));
+  dataSection.querySelector('#reset-btn').onclick = () => confirmResetData();
+  wrap.appendChild(dataSection);
+
+  return wrap;
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `wayfarer-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importData(file, statusEl){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !Array.isArray(parsed.destinations)){
+        throw new Error('This file does not look like a Wayfarer backup.');
+      }
+      openConfirm(
+        'Import Data?',
+        'This will replace all current destinations, history, and settings with the contents of this file. This cannot be undone.',
+        () => {
+          DATA = Object.assign(defaultData(), parsed);
+          saveData();
+          closeModal();
+          render();
+        }
+      );
+    } catch(err){
+      if(statusEl){ statusEl.textContent = 'Import failed: ' + err.message; statusEl.className = 'status-msg err'; }
+    }
+  };
+  reader.readAsText(file);
+}
+
+function confirmResetData(){
+  openConfirm(
+    'Clear all data?',
+    'This will permanently delete every destination, rating, and history entry. This cannot be undone.',
+    () => {
+      DATA = defaultData();
+      saveData();
+      closeModal();
+      render();
+    }
+  );
+}
+
+function openConfirm(title, desc, onConfirm){
+  const backdrop = el(`
+    <div class="modal-backdrop" style="align-items:center;">
+      <div class="confirm-box">
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+          <button class="btn btn-danger" id="confirm-ok">Confirm</button>
+        </div>
+      </div>
+    </div>
+  `);
+  backdrop.querySelector('#confirm-cancel').onclick = closeModal;
+  backdrop.querySelector('#confirm-ok').onclick = onConfirm;
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) closeModal(); });
+  openModal(backdrop);
+}
+
+/* ============================================================
+   ADD / EDIT DESTINATION MODAL
+   ============================================================ */
+function openAddEditModal(destId){
+  const isEdit = !!destId;
+  const dest = isEdit ? DATA.destinations.find(d => d.id === destId) : {
+    id: uid(), name: '', season: 'Year-round', cost: 3, image: null,
+    location: { lat: null, long: null }, ratings: {}, tier: 'unranked', visited: false, notes: '',
+    order: nextOrderFor('unranked')
+  };
+  const workingRatings = Object.assign({}, dest.ratings);
+  let workingImage = dest.image;
+  let workingLat = dest.location.lat;
+  let workingLong = dest.location.long;
+
+  const backdrop = el(`<div class="modal-backdrop"></div>`);
+  const modal = el(`
+    <div class="modal">
+      <div class="modal-header">
+        <h2>${isEdit ? 'Edit Destination' : 'Add Destination'}</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="f-name" value="${escapeHtml(dest.name)}" placeholder="e.g. Kyoto, Japan">
+        </div>
+        <div class="form-group">
+          <label>Image</label>
+          <div class="image-drop" id="f-image-drop">${workingImage ? `<img src="${workingImage}">` : 'Click to upload a photo'}</div>
+          <input type="file" id="f-image-file" accept="image/*" style="display:none">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Preferred Season</label>
+            <select id="f-season"></select>
+          </div>
+          <div class="form-group">
+            <label>Cost (1–5)</label>
+            <select id="f-cost">
+              ${[1,2,3,4,5].map(n => `<option value="${n}" ${dest.cost===n?'selected':''}>${'$'.repeat(n)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <div class="field-row">
+            <input type="text" id="f-loc-name" placeholder="Type a city or country to look up">
+            <button class="btn btn-primary" id="f-loc-lookup">Look Up</button>
+          </div>
+          <div class="geocode-status" id="f-loc-status"></div>
+          <div class="divider-or">or enter coordinates manually</div>
+          <div class="form-grid-2">
+            <input type="number" step="any" id="f-lat" placeholder="Latitude" value="${workingLat ?? ''}">
+            <input type="number" step="any" id="f-long" placeholder="Longitude" value="${workingLong ?? ''}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ratings</label>
+          <div id="f-ratings"></div>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="f-visited" ${dest.visited?'checked':''}> Mark as visited</label>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="f-notes" placeholder="General notes about this destination">${escapeHtml(dest.notes || '')}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        ${isEdit ? `<button class="btn btn-danger" id="f-delete" style="margin-right:auto;">Delete</button>` : ''}
+        <button class="btn btn-secondary" id="f-cancel">Cancel</button>
+        <button class="btn btn-primary" id="f-save">Save</button>
+      </div>
+    </div>
+  `);
+
+  // Season select
+  const seasonSel = modal.querySelector('#f-season');
+  SEASONS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    if(dest.season === s) opt.selected = true;
+    seasonSel.appendChild(opt);
+  });
+
+  // Ratings
+  const ratingsWrap = modal.querySelector('#f-ratings');
+  RATING_CATEGORIES.forEach(cat => {
+    const row = el(`
+      <div class="rating-row">
+        <span class="cat-name">${cat.label}</span>
+        <div class="star-picker" data-cat="${cat.key}"></div>
+      </div>
+    `);
+    const picker = row.querySelector('.star-picker');
+    renderStarPicker(picker, workingRatings[cat.key] || 0, (val) => { workingRatings[cat.key] = val; });
+    ratingsWrap.appendChild(row);
+  });
+
+  // Image upload
+  modal.querySelector('#f-image-drop').onclick = () => modal.querySelector('#f-image-file').click();
+  modal.querySelector('#f-image-file').onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const dropEl = modal.querySelector('#f-image-drop');
+    dropEl.textContent = 'Processing image…';
+    try {
+      workingImage = await resizeImageFile(file);
+      dropEl.innerHTML = `<img src="${workingImage}">`;
+    } catch(err){
+      dropEl.textContent = 'Could not read that image. Try another file.';
+    }
+  };
+
+  // Geocode lookup
+  modal.querySelector('#f-loc-lookup').onclick = async () => {
+    const name = modal.querySelector('#f-loc-name').value.trim();
+    const status = modal.querySelector('#f-loc-status');
+    if(!name){ status.textContent = 'Enter a place name first.'; status.className = 'geocode-status err'; return; }
+    status.textContent = 'Looking up location…';
+    status.className = 'geocode-status';
+    try {
+      const loc = await geocodeLocation(name);
+      modal.querySelector('#f-lat').value = loc.lat;
+      modal.querySelector('#f-long').value = loc.long;
+      status.textContent = 'Found it. Coordinates filled in below.';
+      status.className = 'geocode-status ok';
+    } catch(err){
+      status.textContent = "Couldn't find that location. Could be no internet, an unrecognized name, or a rate limit. Enter coordinates manually below.";
+      status.className = 'geocode-status err';
+    }
+  };
+
+  function close(){ closeModal(); }
+  modal.querySelector('.modal-close').onclick = close;
+  modal.querySelector('#f-cancel').onclick = close;
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) close(); });
+
+  if(isEdit){
+    modal.querySelector('#f-delete').onclick = () => confirmDeleteDestination(dest.id);
+  }
+
+  modal.querySelector('#f-save').onclick = () => {
+    const name = modal.querySelector('#f-name').value.trim();
+    if(!name){ alert('Please give this destination a name.'); return; }
+    const lat = parseFloat(modal.querySelector('#f-lat').value);
+    const long = parseFloat(modal.querySelector('#f-long').value);
+
+    dest.name = name;
+    dest.season = seasonSel.value;
+    dest.cost = parseInt(modal.querySelector('#f-cost').value, 10);
+    dest.image = workingImage;
+    dest.location = { lat: isNaN(lat) ? null : lat, long: isNaN(long) ? null : long };
+    dest.ratings = workingRatings;
+    dest.visited = modal.querySelector('#f-visited').checked;
+    dest.notes = modal.querySelector('#f-notes').value;
+    if(!dest.tier) dest.tier = 'unranked';
+
+    if(!isEdit){ DATA.destinations.push(dest); }
+    saveData();
+    closeModal();
+  };
+
+  backdrop.appendChild(modal);
+  openModal(backdrop);
+}
+
+function renderStarPicker(container, initialValue, onChange){
+  let value = initialValue;
+  function draw(){
+    container.innerHTML = '';
+    for(let i=1;i<=5;i++){
+      const btn = document.createElement('button');
+      btn.textContent = '★';
+      btn.className = i <= value ? 'filled' : '';
+      btn.onclick = (e) => { e.stopPropagation(); value = (value === i) ? 0 : i; onChange(value); draw(); };
+      container.appendChild(btn);
+    }
+  }
+  draw();
+}
+
+/* ============================================================
+   DESTINATION DETAIL MODAL
+   ============================================================ */
+function openDetailModal(destId){
+  const dest = DATA.destinations.find(d => d.id === destId);
+  if(!dest) return;
+  const linkedHistory = DATA.history.filter(h => h.destinationId === destId).sort((a,b) => new Date(b.date)-new Date(a.date));
+
+  const backdrop = el(`<div class="modal-backdrop"></div>`);
+  const modal = el(`
+    <div class="modal">
+      <div class="modal-header">
+        <h2>${escapeHtml(dest.name)}</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-hero" style="${dest.image?`background-image:url(${dest.image})`:''}"></div>
+        <div class="detail-tags">
+          <span class="tag">${dest.season || '-'}</span>
+          <span class="tag">${'$'.repeat(dest.cost || 0) || '-'}</span>
+          <span class="tag">${dest.tier && dest.tier !== 'unranked' ? 'Tier ' + dest.tier : 'Unranked'}</span>
+          ${dest.visited ? `<span class="tag" style="color:#1a8a3d;background:#e6f7ea;">Visited</span>` : ''}
+        </div>
+        ${dest.location.lat != null ? `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">📍 ${dest.location.lat.toFixed(3)}, ${dest.location.long.toFixed(3)}</p>` : `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">No coordinates set</p>`}
+        <div style="margin-bottom:16px;">
+          ${RATING_CATEGORIES.map(cat => `
+            <div class="rating-row">
+              <span class="cat-name">${cat.label}</span>
+              <span class="stars" style="margin-top:0;">${'★'.repeat(dest.ratings[cat.key]||0)}${'☆'.repeat(5-(dest.ratings[cat.key]||0))}</span>
+            </div>
+          `).join('')}
+        </div>
+        ${dest.notes ? `<div class="form-group"><label>Notes</label><p style="font-size:13.5px;">${escapeHtml(dest.notes)}</p></div>` : ''}
+        <div class="form-group">
+          <label>Trip History (${linkedHistory.length})</label>
+          ${linkedHistory.length === 0 ? `<p style="font-size:13px;color:var(--text-secondary);">No trips logged for this destination yet.</p>` :
+            linkedHistory.map(h => `
+              <div class="history-log-item">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-weight:600;">${formatDate(h.date)}</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="stars" style="margin-top:0;">${'★'.repeat(h.rating)}${'☆'.repeat(5-h.rating)}</span>
+                    <button class="icon-btn" title="Delete entry" data-history-id="${h.id}">${ICONS.trash}</button>
+                  </div>
+                </div>
+                <div style="color:var(--text-secondary);margin-top:3px;">${escapeHtml(h.summary||'')}</div>
+              </div>
+            `).join('')
+          }
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="d-delete" style="margin-right:auto;">Delete</button>
+        <button class="btn btn-secondary" id="d-log-trip">Log a Trip</button>
+        <button class="btn btn-secondary" id="d-toggle-visited">${dest.visited ? 'Mark as Not Visited' : 'Mark as Visited'}</button>
+        <button class="btn btn-primary" id="d-edit">Edit</button>
+      </div>
+    </div>
+  `);
+
+  modal.querySelector('.modal-close').onclick = closeModal;
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) closeModal(); });
+  modal.querySelector('#d-edit').onclick = () => { closeModal(); openAddEditModal(destId); };
+  modal.querySelector('#d-delete').onclick = () => confirmDeleteDestination(destId);
+  modal.querySelector('#d-toggle-visited').onclick = () => {
+    dest.visited = !dest.visited;
+    saveData();
+    closeModal();
+    openDetailModal(destId);
+  };
+  modal.querySelector('#d-log-trip').onclick = () => {
+    closeModal();
+    openHistoryModal(destId);
+  };
+  modal.querySelectorAll('[data-history-id]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const entryId = btn.getAttribute('data-history-id');
+      confirmDeleteHistoryEntry(entryId, () => openDetailModal(destId));
+    };
+  });
+
+  backdrop.appendChild(modal);
+  openModal(backdrop);
+}
+
+/* ============================================================
+   LOG TRIP (HISTORY) MODAL
+   ============================================================ */
+function openHistoryModal(preselectDestId){
+  if(DATA.destinations.length === 0){
+    alert('Add a destination first before logging a trip.');
+    return;
+  }
+  let ratingValue = 0;
+  const backdrop = el(`<div class="modal-backdrop"></div>`);
+  const modal = el(`
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Log a Trip</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Destination</label>
+          <select id="h-dest"></select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="h-date" value="${new Date().toISOString().slice(0,10)}">
+        </div>
+        <div class="form-group">
+          <label>How was it?</label>
+          <div class="star-picker" id="h-rating"></div>
+        </div>
+        <div class="form-group">
+          <label>Summary</label>
+          <textarea id="h-summary" placeholder="How did the trip go?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="h-cancel">Cancel</button>
+        <button class="btn btn-primary" id="h-save">Save Entry</button>
+      </div>
+    </div>
+  `);
+  const destSel = modal.querySelector('#h-dest');
+  DATA.destinations.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id; opt.textContent = d.name || 'Untitled';
+    if(preselectDestId === d.id) opt.selected = true;
+    destSel.appendChild(opt);
+  });
+  renderStarPicker(modal.querySelector('#h-rating'), 0, (v) => { ratingValue = v; });
+
+  function close(){ closeModal(); }
+  modal.querySelector('.modal-close').onclick = close;
+  modal.querySelector('#h-cancel').onclick = close;
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) close(); });
+
+  modal.querySelector('#h-save').onclick = () => {
+    const date = modal.querySelector('#h-date').value;
+    if(!date){ alert('Please choose a date.'); return; }
+    if(ratingValue === 0){ alert('Please give a star rating.'); return; }
+    const entry = {
+      id: uid(),
+      destinationId: destSel.value,
+      date,
+      rating: ratingValue,
+      summary: modal.querySelector('#h-summary').value
+    };
+    DATA.history.push(entry);
+    const dest = DATA.destinations.find(d => d.id === destSel.value);
+    if(dest) dest.visited = true;
+    saveData();
+    closeModal();
+    render();
+  };
+
+  backdrop.appendChild(modal);
+  openModal(backdrop);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+render();
+</script>
+</body>
+</html>
