@@ -33,6 +33,10 @@
     --tier-c: #30d158;
     --tier-d: #64d2ff;
     --tier-f: #8e8e93;
+
+    --status-planning: #64d2ff;
+    --status-in-progress: #ff9f0a;
+    --status-completed: #30d158;
   }
 
   * { box-sizing: border-box; }
@@ -551,7 +555,128 @@
     .timeline-thumb { height: 70px; }
   }
 
-    /* ---------- Settings ---------- */
+  /* ---------- Trips ---------- */
+  .trips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .trip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 16px 18px 18px;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+  }
+  .trip-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .trip-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .trip-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    color: #fff;
+  }
+  .trip-status-badge.status-planning { background: var(--status-planning); }
+  .trip-status-badge.status-in-progress { background: var(--status-in-progress); }
+  .trip-status-badge.status-completed { background: var(--status-completed); }
+  .trip-name { font-size: 17px; margin-bottom: 3px; }
+  .trip-dates { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px; }
+  .trip-thumbs { display: flex; align-items: center; gap: 6px; min-height: 34px; flex-wrap: wrap; }
+  .trip-thumb {
+    width: 34px; height: 34px; border-radius: 9px;
+    background-size: cover; background-position: center;
+    background-color: var(--bg);
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    flex-shrink: 0;
+  }
+  .trip-thumb-more {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .trip-no-stops { font-size: 12.5px; color: var(--text-secondary); }
+  .trip-progress { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .trip-progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .trip-progress-bar .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .trip-progress-label { font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; }
+
+  .status-stepper { display: flex; align-items: center; }
+  .status-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    flex: 0 0 auto;
+    padding: 2px 4px;
+  }
+  .status-step .step-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .status-step.done .step-dot { background: var(--accent); border-color: var(--accent); }
+  .status-step.active .step-dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .status-step.active { color: var(--accent); }
+  .step-line { flex: 1 1 24px; height: 2px; background: var(--border); margin: 0 2px 18px; }
+  .step-line.done { background: var(--accent); }
+
+  .trip-stops { display: flex; flex-direction: column; gap: 8px; }
+  .trip-stop-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .trip-stop-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .trip-stop-thumb {
+    width: 32px; height: 32px; border-radius: 8px;
+    background-size: cover; background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    flex-shrink: 0;
+  }
+  .trip-stop-name { flex: 1; font-size: 13.5px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trip-stop-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .trip-stop-actions .icon-btn { width: 26px; height: 26px; }
+  .trip-stop-actions .icon-btn:disabled { opacity: 0.3; cursor: default; }
+  .trip-stop-actions .icon-btn:disabled:hover { background: none; color: var(--text-secondary); }
+  .trip-empty-hint { font-size: 13px; color: var(--text-secondary); }
+
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-check { display: flex; align-items: center; gap: 10px; font-size: 13.5px; flex: 1; min-width: 0; cursor: pointer; }
+  .checklist-check input[type=checkbox] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); }
+  .checklist-check span.done { color: var(--text-secondary); text-decoration: line-through; }
+
+  /* ---------- Settings ---------- */
   .settings-section {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -707,6 +832,7 @@ const RATING_CATEGORIES = [
   {key:'culture', label:'Culture'},
   {key:'relaxation', label:'Relaxation'}
 ];
+const TRIP_STATUSES = ['Planning', 'In Progress', 'Completed'];
 
 function uid(){ return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
 
@@ -714,6 +840,7 @@ function defaultData(){
   return {
     destinations: [],
     history: [],
+    trips: [],
     settings: { homeLocation: { name: '', lat: null, long: null }, unit: 'km' }
   };
 }
@@ -730,10 +857,16 @@ function loadData(){
     const result = Object.assign(d, parsed, {
       destinations: parsed.destinations || [],
       history: parsed.history || [],
+      trips: parsed.trips || [],
       settings: Object.assign(d.settings, parsed.settings || {})
     });
     result.destinations.forEach((dest, i) => {
       if(typeof dest.order !== 'number') dest.order = i;
+    });
+    result.trips.forEach(trip => {
+      if(!Array.isArray(trip.destinationIds)) trip.destinationIds = [];
+      if(!Array.isArray(trip.checklist)) trip.checklist = [];
+      if(!trip.status) trip.status = 'Planning';
     });
     return result;
   } catch(e){
@@ -845,6 +978,7 @@ const ICONS = {
   tier: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="4" rx="1.5"/><rect x="3" y="10" width="14" height="4" rx="1.5"/><rect x="3" y="16" width="10" height="4" rx="1.5"/></svg>`,
   matcher: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="3.2"/><circle cx="17" cy="7" r="3.2"/><circle cx="17" cy="17" r="3.2"/><path d="M9.8 10.6 14.5 8.2M9.8 13.4 14.5 15.8"/></svg>`,
   history: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l3 2"/></svg>`,
+  trips: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>`,
   settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.6-2-3.4-2.4.7a8 8 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a8 8 0 0 0-1.7 1l-2.4-.7-2 3.4L6.2 11a7.9 7.9 0 0 0 0 2l-2 1.6 2 3.4 2.4-.7a8 8 0 0 0 1.7 1L9.8 21h4l.5-2.7a8 8 0 0 0 1.7-1l2.4.7 2-3.4-2-1.6z"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
@@ -869,6 +1003,7 @@ function render(){
       <div class="brand"><span class="dot"></span>Travel Ranker</div>
       ${navItem('tierlist', ICONS.tier, 'Tier List')}
       ${navItem('matcher', ICONS.matcher, 'Trip Matcher')}
+      ${navItem('trips', ICONS.trips, 'Trips')}
       ${navItem('history', ICONS.history, 'History')}
       <div class="nav-spacer"></div>
       ${navItem('settings', ICONS.settings, 'Settings')}
@@ -884,14 +1019,16 @@ function render(){
     <div class="tabbar">
       ${tabItem('tierlist', ICONS.tier, 'Tiers')}
       ${tabItem('matcher', ICONS.matcher, 'Match')}
+      ${tabItem('trips', ICONS.trips, 'Trips')}
       ${tabItem('history', ICONS.history, 'History')}
       ${tabItem('settings', ICONS.settings, 'Settings')}
     </div>
   `);
   app.appendChild(tabbar);
 
-  const fab = el(`<button class="fab" title="Add destination">${ICONS.plus}</button>`);
-  fab.onclick = () => openAddEditModal();
+  const fabCfg = fabConfig();
+  const fab = el(`<button class="fab" title="${fabCfg.title}">${ICONS.plus}</button>`);
+  fab.onclick = fabCfg.onClick;
   app.appendChild(fab);
 
   modalStack.forEach(node => app.appendChild(node));
@@ -903,6 +1040,11 @@ function navItem(view, icon, label){
 function tabItem(view, icon, label){
   return `<button class="${currentView===view?'active':''}" data-view="${view}">${icon}<span>${label}</span></button>`;
 }
+function fabConfig(){
+  if(currentView === 'trips') return { title: 'Plan a trip', onClick: () => openTripModal() };
+  if(currentView === 'history') return { title: 'Log a trip', onClick: () => openHistoryModal() };
+  return { title: 'Add destination', onClick: () => openAddEditModal() };
+}
 
 // Delegate nav clicks after render via event delegation on document
 document.addEventListener('click', (e) => {
@@ -913,6 +1055,7 @@ document.addEventListener('click', (e) => {
 function renderCurrentView(){
   if(currentView === 'tierlist') return renderTierListView();
   if(currentView === 'matcher') return renderMatcherView();
+  if(currentView === 'trips') return renderTripsView();
   if(currentView === 'history') return renderHistoryView();
   if(currentView === 'settings') return renderSettingsView();
   return el('<div></div>');
@@ -1215,6 +1358,307 @@ function seasonsCompatible(a, b){
 }
 
 /* ============================================================
+   TRIPS VIEW
+   ============================================================ */
+function renderTripsView(){
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="view-header">
+      <div><h1>Trips</h1><p>Group destinations into a plan, set dates, and track progress.</p></div>
+    </div>
+  `));
+
+  if(DATA.trips.length === 0){
+    wrap.appendChild(emptyState('🧳', 'No trips planned yet', 'Combine destinations into a single plan, add dates and a checklist, then track it from planning to done.', 'Plan a Trip', () => openTripModal()));
+    return wrap;
+  }
+
+  const grid = el('<div class="trips-grid"></div>');
+  const sorted = [...DATA.trips].sort((a,b) => {
+    const aKey = a.startDate || '9999-99-99';
+    const bKey = b.startDate || '9999-99-99';
+    return aKey.localeCompare(bKey) || (a.name || '').localeCompare(b.name || '');
+  });
+  sorted.forEach(trip => grid.appendChild(tripCardEl(trip)));
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function statusSlug(status){
+  return (status || 'Planning').toLowerCase().replace(/\s+/g, '-');
+}
+
+function tripDateRange(trip){
+  if(trip.startDate && trip.endDate) return `${formatDate(trip.startDate)} to ${formatDate(trip.endDate)}`;
+  if(trip.startDate) return `Starts ${formatDate(trip.startDate)}`;
+  if(trip.endDate) return `Ends ${formatDate(trip.endDate)}`;
+  return '';
+}
+
+function tripCardEl(trip){
+  const stops = (trip.destinationIds || []).map(id => DATA.destinations.find(d => d.id === id)).filter(Boolean);
+  const checklist = trip.checklist || [];
+  const doneCount = checklist.filter(c => c.done).length;
+  const pct = checklist.length ? Math.round((doneCount / checklist.length) * 100) : 0;
+  const dateRange = tripDateRange(trip);
+  const status = trip.status || 'Planning';
+
+  const card = el(`
+    <div class="trip-card">
+      <div class="trip-card-top">
+        <span class="trip-status-badge status-${statusSlug(status)}">${status}</span>
+        <button class="icon-btn" title="Delete trip" data-delete-trip="1">${ICONS.trash}</button>
+      </div>
+      <h3 class="trip-name">${escapeHtml(trip.name || 'Untitled Trip')}</h3>
+      ${dateRange ? `<div class="trip-dates">${dateRange}</div>` : ''}
+      <div class="trip-thumbs">
+        ${stops.length ? stops.slice(0,5).map(d => `<div class="trip-thumb" title="${escapeHtml(d.name)}" style="${d.image?`background-image:url(${d.image})`:''}"></div>`).join('') : `<span class="trip-no-stops">No destinations added yet</span>`}
+        ${stops.length > 5 ? `<div class="trip-thumb-more">+${stops.length-5}</div>` : ''}
+      </div>
+      ${checklist.length ? `
+        <div class="trip-progress">
+          <div class="trip-progress-bar"><div class="fill" style="width:${pct}%"></div></div>
+          <span class="trip-progress-label">${doneCount}/${checklist.length} done</span>
+        </div>
+      ` : ''}
+    </div>
+  `);
+  card.onclick = () => openTripModal(trip.id);
+  card.querySelector('[data-delete-trip]').onclick = (e) => { e.stopPropagation(); confirmDeleteTrip(trip.id); };
+  return card;
+}
+
+function confirmDeleteTrip(tripId){
+  const trip = DATA.trips.find(t => t.id === tripId);
+  if(!trip) return;
+  openConfirm(
+    'Delete this trip?',
+    `This will permanently remove "${trip.name || 'this trip'}" and its checklist. This cannot be undone.`,
+    () => {
+      DATA.trips = DATA.trips.filter(t => t.id !== tripId);
+      saveData();
+      closeAllModals();
+    }
+  );
+}
+
+/* ============================================================
+   PLAN / EDIT TRIP MODAL
+   ============================================================ */
+function openTripModal(tripId){
+  const isEdit = !!tripId;
+  const trip = isEdit ? DATA.trips.find(t => t.id === tripId) : {
+    id: uid(), name: '', startDate: '', endDate: '', status: 'Planning',
+    destinationIds: [], checklist: []
+  };
+  let workingStops = [...(trip.destinationIds || [])];
+  let workingChecklist = (trip.checklist || []).map(c => Object.assign({}, c));
+  let workingStatus = trip.status || 'Planning';
+
+  const backdrop = el(`<div class="modal-backdrop"></div>`);
+  const modal = el(`
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <h2>${isEdit ? 'Edit Trip' : 'Plan a Trip'}</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Trip Name</label>
+          <input type="text" id="t-name" value="${escapeHtml(trip.name)}" placeholder="e.g. Spring in Japan">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="t-start" value="${trip.startDate || ''}">
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" id="t-end" value="${trip.endDate || ''}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <div class="status-stepper" id="t-status"></div>
+        </div>
+        <div class="form-group">
+          <label>Destinations (in visit order)</label>
+          <div class="trip-stops" id="t-stops"></div>
+          <div class="field-row" style="margin-top:10px;">
+            <select id="t-add-dest" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt);"></select>
+            <button class="btn btn-secondary" id="t-add-dest-btn">Add Stop</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Checklist</label>
+          <div id="t-checklist"></div>
+          <div class="field-row" style="margin-top:8px;">
+            <input type="text" id="t-checklist-input" placeholder="Add an activity or to-do" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt);">
+            <button class="btn btn-secondary" id="t-checklist-add">Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        ${isEdit ? `<button class="btn btn-danger" id="t-delete" style="margin-right:auto;">Delete</button>` : ''}
+        <button class="btn btn-secondary" id="t-cancel">Cancel</button>
+        <button class="btn btn-primary" id="t-save">Save Trip</button>
+      </div>
+    </div>
+  `);
+
+  // Status progress path
+  function drawStepper(){
+    const stepper = modal.querySelector('#t-status');
+    stepper.innerHTML = '';
+    const activeIdx = TRIP_STATUSES.indexOf(workingStatus);
+    TRIP_STATUSES.forEach((status, i) => {
+      const stepEl = el(`
+        <button type="button" class="status-step ${i===activeIdx?'active':''} ${i<activeIdx?'done':''}" data-status="${status}">
+          <span class="step-dot"></span>
+          <span class="step-label">${status}</span>
+        </button>
+      `);
+      stepEl.onclick = () => { workingStatus = status; drawStepper(); };
+      stepper.appendChild(stepEl);
+      if(i < TRIP_STATUSES.length - 1){
+        stepper.appendChild(el(`<span class="step-line ${i<activeIdx?'done':''}"></span>`));
+      }
+    });
+  }
+  drawStepper();
+
+  // Destination stops (add / reorder / remove)
+  function populateAddDestSelect(){
+    const sel = modal.querySelector('#t-add-dest');
+    const addBtn = modal.querySelector('#t-add-dest-btn');
+    sel.innerHTML = '';
+    const available = DATA.destinations.filter(d => !workingStops.includes(d.id));
+    if(available.length === 0){
+      sel.innerHTML = `<option value="">${DATA.destinations.length ? 'All destinations added' : 'No destinations yet'}</option>`;
+      addBtn.disabled = true;
+      return;
+    }
+    addBtn.disabled = false;
+    available.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.name || 'Untitled';
+      sel.appendChild(opt);
+    });
+  }
+
+  function drawStops(){
+    const stopsWrap = modal.querySelector('#t-stops');
+    stopsWrap.innerHTML = '';
+    if(workingStops.length === 0){
+      stopsWrap.appendChild(el(`<p class="trip-empty-hint">No destinations added yet. Pick one below.</p>`));
+    }
+    workingStops.forEach((destId, i) => {
+      const dest = DATA.destinations.find(d => d.id === destId);
+      const row = el(`
+        <div class="trip-stop-row">
+          <span class="trip-stop-num">${i+1}</span>
+          <div class="trip-stop-thumb" style="${dest && dest.image ? `background-image:url(${dest.image})` : ''}"></div>
+          <span class="trip-stop-name">${escapeHtml(dest ? dest.name : 'Deleted destination')}</span>
+          <div class="trip-stop-actions">
+            <button class="icon-btn" title="Move up" data-move="up" ${i===0?'disabled':''}>&uarr;</button>
+            <button class="icon-btn" title="Move down" data-move="down" ${i===workingStops.length-1?'disabled':''}>&darr;</button>
+            <button class="icon-btn" title="Remove stop" data-remove="1">${ICONS.trash}</button>
+          </div>
+        </div>
+      `);
+      row.querySelector('[data-move="up"]').onclick = () => {
+        if(i === 0) return;
+        [workingStops[i-1], workingStops[i]] = [workingStops[i], workingStops[i-1]];
+        drawStops();
+      };
+      row.querySelector('[data-move="down"]').onclick = () => {
+        if(i === workingStops.length - 1) return;
+        [workingStops[i+1], workingStops[i]] = [workingStops[i], workingStops[i+1]];
+        drawStops();
+      };
+      row.querySelector('[data-remove]').onclick = () => {
+        workingStops.splice(i, 1);
+        drawStops();
+      };
+      stopsWrap.appendChild(row);
+    });
+    populateAddDestSelect();
+  }
+  drawStops();
+
+  modal.querySelector('#t-add-dest-btn').onclick = () => {
+    const sel = modal.querySelector('#t-add-dest');
+    if(!sel.value) return;
+    workingStops.push(sel.value);
+    drawStops();
+  };
+
+  // Checklist
+  function drawChecklist(){
+    const wrap = modal.querySelector('#t-checklist');
+    wrap.innerHTML = '';
+    if(workingChecklist.length === 0){
+      wrap.appendChild(el(`<p class="trip-empty-hint">No checklist items yet.</p>`));
+    }
+    workingChecklist.forEach((item, i) => {
+      const row = el(`
+        <div class="checklist-item">
+          <label class="checklist-check">
+            <input type="checkbox" ${item.done?'checked':''}>
+            <span class="${item.done?'done':''}">${escapeHtml(item.text)}</span>
+          </label>
+          <button class="icon-btn" title="Remove item" data-remove-check="1">${ICONS.trash}</button>
+        </div>
+      `);
+      row.querySelector('input[type=checkbox]').onchange = (e) => { item.done = e.target.checked; drawChecklist(); };
+      row.querySelector('[data-remove-check]').onclick = () => { workingChecklist.splice(i, 1); drawChecklist(); };
+      wrap.appendChild(row);
+    });
+  }
+  drawChecklist();
+
+  function addChecklistItem(){
+    const input = modal.querySelector('#t-checklist-input');
+    const text = input.value.trim();
+    if(!text) return;
+    workingChecklist.push({ id: uid(), text, done: false });
+    input.value = '';
+    drawChecklist();
+    input.focus();
+  }
+  modal.querySelector('#t-checklist-add').onclick = addChecklistItem;
+  modal.querySelector('#t-checklist-input').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); addChecklistItem(); }
+  });
+
+  function close(){ closeModal(); }
+  modal.querySelector('.modal-close').onclick = close;
+  modal.querySelector('#t-cancel').onclick = close;
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) close(); });
+
+  if(isEdit){
+    modal.querySelector('#t-delete').onclick = () => confirmDeleteTrip(trip.id);
+  }
+
+  modal.querySelector('#t-save').onclick = () => {
+    const name = modal.querySelector('#t-name').value.trim();
+    trip.name = name || 'Untitled Trip';
+    trip.startDate = modal.querySelector('#t-start').value || '';
+    trip.endDate = modal.querySelector('#t-end').value || '';
+    trip.status = workingStatus;
+    trip.destinationIds = workingStops;
+    trip.checklist = workingChecklist;
+
+    if(!isEdit){ DATA.trips.push(trip); }
+    saveData();
+    closeModal();
+  };
+
+  backdrop.appendChild(modal);
+  openModal(backdrop);
+}
+
+/* ============================================================
    HISTORY VIEW
    ============================================================ */
 function renderHistoryView(){
@@ -1222,10 +1666,8 @@ function renderHistoryView(){
   wrap.appendChild(el(`
     <div class="view-header">
       <div><h1>History</h1><p>A log of the trips you've actually taken.</p></div>
-      <button class="btn btn-primary" id="btn-add-history">Log a Trip</button>
     </div>
   `));
-  wrap.querySelector('#btn-add-history').onclick = () => openHistoryModal();
 
   if(DATA.history.length === 0){
     wrap.appendChild(emptyState('📓', 'No trips logged yet', 'Once you visit a destination, log it here to keep a record of how it went.', DATA.destinations.length ? 'Log a Trip' : null, () => openHistoryModal()));
