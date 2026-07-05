@@ -478,7 +478,83 @@
   .fab:hover { transform: scale(1.06); }
   @media (max-width: 860px) { .fab { bottom: 78px; right: 18px; width: 50px; height: 50px; } }
 
-  /* ---------- Settings ---------- */
+
+  .timeline-wrap {
+    overflow-x: auto;
+    padding-bottom: 18px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .timeline-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    position: relative;
+    padding: 40px 20px 10px 20px;
+    min-height: 220px;
+  }
+  .timeline-track::before {
+    content: '';
+    position: absolute;
+    top: 68px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: var(--border);
+  }
+  .timeline-item {
+    flex: 0 0 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 0 10px;
+  }
+  .timeline-date {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-bottom: 10px;
+  }
+  .timeline-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 2px var(--accent);
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .timeline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    width: 160px;
+    overflow: hidden;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+  }
+  .timeline-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .timeline-thumb {
+    width: 100%; height: 90px;
+    background-size: cover; background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+  }
+  .timeline-info { padding: 9px 10px 11px 10px; }
+  .timeline-name {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .timeline-stars { color: #ffb100; font-size: 11px; letter-spacing: 1px; margin-top: 4px; }
+  @media (max-width: 860px) {
+    .timeline-item { flex: 0 0 140px; }
+    .timeline-card { width: 120px; }
+    .timeline-thumb { height: 70px; }
+  }
+
+    /* ---------- Settings ---------- */
   .settings-section {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -506,8 +582,8 @@
   .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: #fdeceb; color: var(--danger); }
   .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-  .unit-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
-  .unit-toggle button { padding: 6px 16px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); min-width: 108px; text-align: center; }
+  .unit-toggle { display: flex; width: 220px; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .unit-toggle button { flex: 1 1 0; padding: 6px 16px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); text-align: center; }
   .unit-toggle button.active { background: var(--accent); color: white; }
   .hint { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
   .status-msg { font-size: 12.5px; margin-top: 8px; }
@@ -1034,6 +1110,7 @@ function emptyState(icon, title, desc, btnLabel, onClick){
    TRIP MATCHER VIEW
    ============================================================ */
 let matcherBaseId = null;
+let historyViewMode = 'list'; // 'list' | 'timeline'
 
 function renderMatcherView(){
   const wrap = el(`<div></div>`);
@@ -1151,6 +1228,23 @@ function renderHistoryView(){
     return wrap;
   }
 
+  const toggle = el(`
+    <div class="unit-toggle" style="margin-bottom:18px;">
+      <button data-mode="list">List</button>
+      <button data-mode="timeline">Timeline</button>
+    </div>
+  `);
+  toggle.querySelectorAll('[data-mode]').forEach(btn => {
+    if(btn.getAttribute('data-mode') === historyViewMode) btn.classList.add('active');
+    btn.onclick = () => { historyViewMode = btn.getAttribute('data-mode'); render(); };
+  });
+  wrap.appendChild(toggle);
+
+  wrap.appendChild(historyViewMode === 'timeline' ? renderHistoryTimeline() : renderHistoryList());
+  return wrap;
+}
+
+function renderHistoryList(){
   const sorted = [...DATA.history].sort((a,b) => new Date(b.date) - new Date(a.date));
   const list = el('<div></div>');
   sorted.forEach(entry => {
@@ -1178,8 +1272,37 @@ function renderHistoryView(){
     };
     list.appendChild(row);
   });
-  wrap.appendChild(list);
-  return wrap;
+  return list;
+}
+
+function renderHistoryTimeline(){
+  const sorted = [...DATA.history].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const timelineWrap = el('<div class="timeline-wrap"></div>');
+  const track = el('<div class="timeline-track"></div>');
+  sorted.forEach(entry => {
+    const dest = DATA.destinations.find(d => d.id === entry.destinationId);
+    const item = el(`
+      <div class="timeline-item">
+        <div class="timeline-date">${formatDate(entry.date)}</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <div class="timeline-thumb" style="${dest && dest.image ? `background-image:url(${dest.image})` : ''}"></div>
+          <div class="timeline-info">
+            <div class="timeline-name">${escapeHtml(dest ? dest.name : 'Unknown destination')}</div>
+            <div class="timeline-stars">${'★'.repeat(entry.rating)}${'☆'.repeat(5-entry.rating)}</div>
+          </div>
+        </div>
+      </div>
+    `);
+    const card = item.querySelector('.timeline-card');
+    if(dest){
+      card.style.cursor = 'pointer';
+      card.onclick = () => openDetailModal(dest.id);
+    }
+    track.appendChild(item);
+  });
+  timelineWrap.appendChild(track);
+  return timelineWrap;
 }
 
 function confirmDeleteHistoryEntry(entryId, afterDelete){
