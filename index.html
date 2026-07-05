@@ -813,6 +813,63 @@
     box-shadow: var(--shadow-lg);
   }
   .confirm-box p { font-size: 14px; color: var(--text-secondary); margin: 8px 0 18px; }
+
+  /* ---------- Collapsible Sidebar ---------- */
+  .sidebar { transition: width 0.18s ease, padding 0.18s ease; }
+  .sidebar-toggle-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 4px 10px 4px;
+  }
+  .sidebar-toggle-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.18s ease;
+  }
+  .sidebar-toggle-btn:hover { background: rgba(0,0,0,0.05); color: var(--text); }
+  .sidebar-toggle-btn svg { width: 16px; height: 16px; }
+  .sidebar.collapsed { width: 72px; padding-left: 10px; padding-right: 10px; }
+  .sidebar.collapsed .sidebar-toggle-row { justify-content: center; }
+  .sidebar.collapsed .sidebar-toggle-btn svg { transform: rotate(180deg); }
+  .sidebar.collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  .sidebar.collapsed .brand .brand-text { display: none; }
+  .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+  .sidebar.collapsed .nav-item span.nav-label { display: none; }
+  @media (max-width: 860px) { .sidebar.collapsed { width: 220px; padding-left: 14px; padding-right: 14px; } }
+
+  /* ---------- Tier List: View Toggle & List View ---------- */
+  .tierlist-view-toggle { margin-bottom: 18px; }
+  .tier-list-view-table { display: flex; flex-direction: column; gap: 8px; }
+  .tier-list-view-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .tier-list-view-row:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .tier-list-view-row .tlv-rank { width: 26px; text-align: center; font-weight: 700; color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+  .tier-list-view-row .tlv-tier {
+    width: 26px; height: 26px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 12.5px; flex-shrink: 0;
+  }
+  .tier-list-view-row .tlv-thumb {
+    width: 40px; height: 40px; border-radius: 9px;
+    background-size: cover; background-position: center;
+    background: linear-gradient(135deg, #e5e5ea, #f2f2f4);
+    flex-shrink: 0;
+  }
+  .tier-list-view-row .tlv-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tier-list-view-row .tlv-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .tier-list-view-row .tlv-dist { font-size: 12px; color: var(--text-secondary); width: 130px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -952,9 +1009,31 @@ function resizeImageFile(file, maxDim=1200, quality=0.82){
    ============================================================ */
 let currentView = 'tierlist';
 let modalStack = [];
+function safeGetItem(key, fallback){
+  try { return localStorage.getItem(key) ?? fallback; }
+  catch(e){ return fallback; }
+}
+function safeSetItem(key, value){
+  try { localStorage.setItem(key, value); }
+  catch(e){ /* storage unavailable, ignore */ }
+}
+let sidebarCollapsed = safeGetItem('travel_ranker_sidebar_collapsed', 'false') === 'true';
+let tierListViewMode = safeGetItem('travel_ranker_tierlist_view', 'grid'); // 'grid' | 'list'
 
 function setView(v){
   currentView = v;
+  render();
+}
+
+function toggleSidebar(){
+  sidebarCollapsed = !sidebarCollapsed;
+  safeSetItem('travel_ranker_sidebar_collapsed', sidebarCollapsed);
+  render();
+}
+
+function setTierListViewMode(mode){
+  tierListViewMode = mode;
+  safeSetItem('travel_ranker_tierlist_view', mode);
   render();
 }
 
@@ -982,7 +1061,9 @@ const ICONS = {
   settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.6-2-3.4-2.4.7a8 8 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a8 8 0 0 0-1.7 1l-2.4-.7-2 3.4L6.2 11a7.9 7.9 0 0 0 0 2l-2 1.6 2 3.4 2.4-.7a8 8 0 0 0 1.7 1L9.8 21h4l.5-2.7a8 8 0 0 0 1.7-1l2.4.7 2-3.4-2-1.6z"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
-  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6.5 7 7.3 19.5A1.5 1.5 0 0 0 8.8 21h6.4a1.5 1.5 0 0 0 1.5-1.5L17.5 7"/><path d="M10 11v6M14 11v6"/></svg>`
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6.5 7 7.3 19.5A1.5 1.5 0 0 0 8.8 21h6.4a1.5 1.5 0 0 0 1.5-1.5L17.5 7"/><path d="M10 11v6M14 11v6"/></svg>`,
+  chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`,
+  list: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`
 };
 
 /* ============================================================
@@ -999,8 +1080,11 @@ function render(){
   app.innerHTML = '';
 
   const sidebar = el(`
-    <div class="sidebar">
-      <div class="brand"><span class="dot"></span>Travel Ranker</div>
+    <div class="sidebar ${sidebarCollapsed ? 'collapsed' : ''}">
+      <div class="sidebar-toggle-row">
+        <button class="sidebar-toggle-btn" id="sidebar-toggle" title="${sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${ICONS.chevron}</button>
+      </div>
+      <div class="brand"><span class="dot"></span><span class="brand-text">Travel Ranker</span></div>
       ${navItem('tierlist', ICONS.tier, 'Tier List')}
       ${navItem('matcher', ICONS.matcher, 'Trip Matcher')}
       ${navItem('trips', ICONS.trips, 'Trips')}
@@ -1009,6 +1093,7 @@ function render(){
       ${navItem('settings', ICONS.settings, 'Settings')}
     </div>
   `);
+  sidebar.querySelector('#sidebar-toggle').onclick = toggleSidebar;
   app.appendChild(sidebar);
 
   const main = el(`<main></main>`);
@@ -1035,7 +1120,7 @@ function render(){
 }
 
 function navItem(view, icon, label){
-  return `<button class="nav-item ${currentView===view?'active':''}" data-view="${view}">${icon}<span>${label}</span></button>`;
+  return `<button class="nav-item ${currentView===view?'active':''}" data-view="${view}" title="${label}">${icon}<span class="nav-label">${label}</span></button>`;
 }
 function tabItem(view, icon, label){
   return `<button class="${currentView===view?'active':''}" data-view="${view}">${icon}<span>${label}</span></button>`;
@@ -1176,7 +1261,7 @@ function renderTierListView(){
   const wrap = el(`<div></div>`);
   wrap.appendChild(el(`
     <div class="view-header">
-      <div><h1>Tier List</h1><p>Drag destinations between tiers to rank them.</p></div>
+      <div><h1>Tier List</h1><p>${tierListViewMode === 'list' ? 'Browse destinations in a sortable list.' : 'Drag destinations between tiers to rank them.'}</p></div>
     </div>
   `));
 
@@ -1185,6 +1270,23 @@ function renderTierListView(){
     return wrap;
   }
 
+  const toggle = el(`
+    <div class="unit-toggle tierlist-view-toggle" style="width:200px;">
+      <button data-view-mode="grid">${'Tiers'}</button>
+      <button data-view-mode="list">${'List'}</button>
+    </div>
+  `);
+  toggle.querySelectorAll('[data-view-mode]').forEach(btn => {
+    if(btn.getAttribute('data-view-mode') === tierListViewMode) btn.classList.add('active');
+    btn.onclick = () => setTierListViewMode(btn.getAttribute('data-view-mode'));
+  });
+  wrap.appendChild(toggle);
+
+  wrap.appendChild(tierListViewMode === 'list' ? renderTierListAsList() : renderTierListAsGrid());
+  return wrap;
+}
+
+function renderTierListAsGrid(){
   const list = el('<div></div>');
   let overallCounter = 0;
 
@@ -1217,7 +1319,73 @@ function renderTierListView(){
   attachDropZone(uZone, 'unranked');
   list.appendChild(unrankedSection);
 
-  wrap.appendChild(list);
+  return list;
+}
+
+let tierListSortKey = 'rank';
+
+function renderTierListAsList(){
+  const wrap = el('<div></div>');
+
+  const sortRow = el(`
+    <div class="field-row" style="margin-bottom:14px;">
+      <label style="font-size:12.5px;color:var(--text-secondary);font-weight:600;">Sort by</label>
+      <select id="tlv-sort" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);min-width:160px;">
+        <option value="rank" ${tierListSortKey==='rank'?'selected':''}>Rank</option>
+        <option value="name" ${tierListSortKey==='name'?'selected':''}>Name</option>
+        <option value="tier" ${tierListSortKey==='tier'?'selected':''}>Tier</option>
+      </select>
+    </div>
+  `);
+  sortRow.querySelector('#tlv-sort').onchange = (e) => { tierListSortKey = e.target.value; render(); };
+  wrap.appendChild(sortRow);
+
+  const tierOrderIndex = { S:0, A:1, B:2, C:3, D:4, F:5, unranked:6 };
+  const ranked = [];
+  let overallCounter = 0;
+  TIERS.forEach(tier => {
+    tierGroup(tier).sort((a,b) => a.order - b.order).forEach((d, i) => {
+      overallCounter += 1;
+      ranked.push({ dest: d, overallRank: overallCounter, tierPos: i + 1 });
+    });
+  });
+  tierGroup('unranked').sort((a,b) => a.order - b.order).forEach(d => {
+    ranked.push({ dest: d, overallRank: null, tierPos: null });
+  });
+
+  let sorted = [...ranked];
+  if(tierListSortKey === 'name'){
+    sorted.sort((a,b) => (a.dest.name || '').localeCompare(b.dest.name || ''));
+  } else if(tierListSortKey === 'tier'){
+    sorted.sort((a,b) => {
+      const ta = tierOrderIndex[a.dest.tier || 'unranked'];
+      const tb = tierOrderIndex[b.dest.tier || 'unranked'];
+      return ta - tb || (a.tierPos ?? 0) - (b.tierPos ?? 0);
+    });
+  }
+  // 'rank' uses the default order already built above
+
+  const table = el('<div class="tier-list-view-table"></div>');
+  sorted.forEach(({ dest, overallRank, tierPos }) => {
+    const tier = dest.tier && dest.tier !== 'unranked' ? dest.tier : null;
+    const row = el(`
+      <div class="tier-list-view-row" data-id="${dest.id}">
+        <span class="tlv-rank">${overallRank ? '#' + overallRank : '-'}</span>
+        <div class="tlv-tier" style="background:${tier ? TIER_COLORS[tier] : 'var(--tier-f)'}">${tier || '-'}</div>
+        <div class="tlv-thumb" style="${dest.image ? `background-image:url(${dest.image})` : ''}"></div>
+        <span class="tlv-name">${escapeHtml(dest.name || 'Untitled')}</span>
+        <div class="tlv-meta">
+          <span class="season-badge">${dest.season || '-'}</span>
+          <span class="cost-dots">${costDots(dest.cost)}</span>
+          <span class="tlv-dist">${distanceLabel(dest)}</span>
+        </div>
+      </div>
+    `);
+    row.onclick = () => openDetailModal(dest.id);
+    table.appendChild(row);
+  });
+  wrap.appendChild(table);
+
   return wrap;
 }
 
