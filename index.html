@@ -113,23 +113,6 @@
 
   .nav-spacer { flex: 1; }
 
-  .add-btn-sidebar {
-    margin-top: 10px;
-    background: var(--accent);
-    color: white;
-    padding: 11px 12px;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: opacity 0.15s ease, transform 0.1s ease;
-  }
-  .add-btn-sidebar:hover { opacity: 0.88; }
-  .add-btn-sidebar:active { transform: scale(0.97); }
-
   main {
     flex: 1;
     padding: 32px 40px 90px 40px;
@@ -873,11 +856,9 @@ function render(){
       ${navItem('history', ICONS.history, 'History')}
       <div class="nav-spacer"></div>
       ${navItem('settings', ICONS.settings, 'Settings')}
-      <button class="add-btn-sidebar" id="btn-add-sidebar">${ICONS.plus} Add Destination</button>
     </div>
   `);
   app.appendChild(sidebar);
-  sidebar.querySelector('#btn-add-sidebar').onclick = () => openAddEditModal();
 
   const main = el(`<main></main>`);
   main.appendChild(renderCurrentView());
