@@ -1,3 +1,15 @@
+<p align="center">
+  <a href="https://dochertydev.github.io/TravelRanker/">
+    <img src="/artifacts/images/apple-touch-icon.png" width="150" alt="TravelRanker">
+  </a>
+</p>
+
+<div align="center">
+
+_Click the icon above to access the app!_
+
+</div>
+
 <h1 align="center">
 Travel Ranker
 </h1>
