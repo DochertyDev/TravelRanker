@@ -206,6 +206,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .dest-card .distance {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
   .dest-card .meta-row {
     display: flex;
     align-items: center;
@@ -761,6 +769,14 @@ function formatDistance(km){
   return Math.round(km).toLocaleString() + ' km';
 }
 
+function distanceLabel(dest){
+  const home = DATA.settings.homeLocation;
+  if(home.lat == null || home.long == null) return 'Set home location';
+  if(dest.location.lat == null || dest.location.long == null) return 'No coordinates set';
+  const km = haversineKm(home.lat, home.long, dest.location.lat, dest.location.long);
+  return formatDistance(km) + ' from home';
+}
+
 async function geocodeLocation(name){
   const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(name);
   const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -913,6 +929,7 @@ function destCardEl(dest, ranks){
       <div class="thumb" style="${dest.image ? `background-image:url(${dest.image})` : ''}">${dest.image ? '' : '🌍'}</div>
       <div class="info">
         <div class="name">${escapeHtml(dest.name || 'Untitled')}</div>
+        <div class="distance">${distanceLabel(dest)}</div>
         <div class="meta-row">
           <div style="display:flex;align-items:center;gap:5px;min-width:0;">
             <span class="season-badge">${dest.season || '-'}</span>
