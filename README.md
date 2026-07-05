@@ -138,7 +138,23 @@ Travel Ranker is a purely client-side application with no backend server, user a
 
 ## 🤝 Contributing
 
-Contributions are welcome. If you have suggestions for new features or bug fixes, feel free to open an issue or submit a pull request. Since Travel Ranker is a single-file, dependency-free app, please keep changes self-contained within `travel-ranker.html` unless a larger refactor is explicitly agreed upon.
+<div align="center">
+<a href="https://github.com/DochertyDev/TravelRanker/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=DochertyDev/TravelRanker&max=400&columns=20"  width="100"/>
+</a>
+</div>
+
+We welcome contributions from the community! If you have suggestions for improvements or new features, feel free to open an issue or submit a pull request. Please ensure your contributions align with the project's client-side, privacy-focused nature.
+
+## 🌟 Support the Project
+
+**Love Travel Ranker?** Give us a ⭐ on GitHub!
+
+<div align="center">
+  <p>
+      <img width="800" src="https://api.star-history.com/svg?repos=DochertyDev/TravelRanker&type=Date" alt="Star-history">
+  </p>
+</div>
 
 ## ⚠️ Disclaimer
 
