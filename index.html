@@ -1426,6 +1426,8 @@ function emptyState(icon, title, desc, btnLabel, onClick){
    ============================================================ */
 let matcherBaseId = null;
 let historyViewMode = 'list'; // 'list' | 'timeline'
+const MATCH_DISTANCE_HALF_SCORE_KM = 8000;
+const MATCH_DISTANCE_DECAY_POWER = 2;
 
 function renderMatcherView(){
   const wrap = el(`<div></div>`);
@@ -1473,10 +1475,10 @@ function renderMatcherView(){
       return { dest: d, score: null, distKm: null };
     }
     const distKm = haversineKm(base.location.lat, base.location.long, d.location.lat, d.location.long);
-    // Distance score: closer is better. Normalize against a generous max range (20,000km ~ antipodal-ish).
-    const distScore = Math.max(0, 1 - (distKm / 20000));
-    const seasonScore = seasonsCompatible(base.season, d.season) ? 1 : 0.3;
-    const matchScore = (distScore * 0.7 + seasonScore * 0.3) * 100;
+    // Distance decay: an inverse-power curve keeps close matches high and compounds long-haul friction.
+    const distScore = distanceDecayScore(distKm);
+    const seasonScore = seasonMatchScore(base.season, d.season);
+    const matchScore = (distScore * 0.85 + seasonScore * 0.15) * 100;
     return { dest: d, score: matchScore, distKm };
   }).sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
 
@@ -1518,11 +1520,24 @@ function renderMatcherView(){
   return wrap;
 }
 
-function seasonsCompatible(a, b){
-  if(!a || !b) return false;
-  if(a === b) return true;
-  if(a === 'Year-round' || b === 'Year-round') return true;
-  return false;
+function distanceDecayScore(distKm){
+  return 1 / (1 + Math.pow(distKm / MATCH_DISTANCE_HALF_SCORE_KM, MATCH_DISTANCE_DECAY_POWER));
+}
+
+function seasonMatchScore(a, b){
+  if(!a || !b) return 0;
+  if(a === b) return 1;
+  if(a === 'Year-round' || b === 'Year-round') return 1;
+
+  const orderedSeasons = ['Spring', 'Summer', 'Fall', 'Winter'];
+  const aIndex = orderedSeasons.indexOf(a);
+  const bIndex = orderedSeasons.indexOf(b);
+  if(aIndex === -1 || bIndex === -1) return 0;
+
+  const distance = Math.abs(aIndex - bIndex);
+  const seasonalGap = Math.min(distance, orderedSeasons.length - distance);
+  if(seasonalGap === 1) return 0.6;
+  return 0;
 }
 
 /* ============================================================
