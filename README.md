@@ -111,15 +111,18 @@ No installation, dependencies, or dev server is required — the app runs entire
 - **localStorage:** Client-side persistence for destinations, history, and settings.
 - **Canvas API:** Used to resize and compress uploaded destination images before storage.
 - **OpenStreetMap Nominatim API:** Free geocoding service used to convert place names into coordinates.
+- **Wikimedia Commons API:** Keyless image search used to provide several filtered city-image candidates after a destination lookup.
 - **Haversine Formula:** Used to calculate great-circle distances between destinations for the Trip Matcher.
 
 ## 🔒 Security Notes
 
-Travel Ranker is a purely client-side application with no backend server, user accounts, or data transmission beyond geocoding lookups.
+Travel Ranker is a purely client-side application with no backend server or user accounts. It contacts public geocoding and image APIs when you request lookups.
 
-- **Local Data Storage:** All destinations, ratings, images, and history are stored exclusively in your browser's `localStorage`. Data never leaves your device except for geocoding requests.
+- **Local Data Storage:** Destinations, ratings, image URLs, image attribution, and history are stored in your browser's `localStorage`. Uploaded images remain local; automatically suggested images are stored as remote Wikimedia Commons URLs and require internet access to load later.
 - **No Authentication:** There is no login system — access is controlled entirely by access to your local browser profile.
-- **Limited External Calls:** The only network requests made are to the OpenStreetMap Nominatim API for place-name lookups; no destination or history data is sent externally.
+- **Limited External Calls:** Network requests are made only when you use a lookup: place names are sent to OpenStreetMap Nominatim and destination names are sent to Wikipedia and Wikimedia Commons for candidate images. Requests time out, results are filtered for common historical, disaster, map, and document matches, and the user chooses the final image. No ratings, notes, trips, or other destination details are sent.
+- **Image Attribution:** Automatically suggested images retain a link to their Wikimedia Commons file page and available creator information. Image availability and search results may vary, and lookup failures do not prevent saving a destination.
+- **Image Selection:** Suggested images are not saved until you explicitly choose one. If remote images are unavailable, upload a local image instead; local uploads remain the dependable offline option.
 - **Storage Limits:** Because images are stored as base64 data URLs in `localStorage`, large photo libraries may approach browser storage limits — export backups regularly.
 
 ## ❓ Troubleshooting
