@@ -824,6 +824,13 @@
     justify-content: center;
   }
   .image-drop img { max-height: 140px; max-width: 100%; border-radius: 8px; }
+  .image-candidates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .image-candidate { padding: 3px; border: 2px solid transparent; border-radius: 9px; background: var(--surface-alt); cursor: pointer; overflow: hidden; }
+  .image-candidate:disabled { cursor: not-allowed; opacity: .55; }
+  .image-candidate.selected { border-color: var(--accent); }
+  .image-candidate img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; }
+  .image-candidate span { display: block; padding: 4px 2px 2px; font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 520px) { .image-candidates { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
   .geocode-status { font-size: 12.5px; margin-top: 6px; }
   .divider-or { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 10px 0; }
@@ -1032,13 +1039,109 @@ function distanceLabel(dest){
   return formatDistance(km) + ' from home';
 }
 
+async function fetchWithTimeout(url, options={}, timeoutMs=12000){
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function geocodeLocation(name){
   const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(name);
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const res = await fetchWithTimeout(url, { headers: { 'Accept': 'application/json' } });
   if(!res.ok) throw new Error('Geocoding request failed');
   const data = await res.json();
   if(!data || !data.length) throw new Error('Location not found');
   return { lat: parseFloat(data[0].lat), long: parseFloat(data[0].lon) };
+}
+
+async function fetchCityImageCandidates(name){
+  const fullName = name.trim();
+  const cityName = fullName.split(',')[0].trim() || fullName;
+  const searchName = fullName.replace(/[,]+/g, ' ');
+  const candidates = [];
+  const seen = new Set();
+  let timedOut = false;
+  const rejectedTerms = /\b(explosion|disaster|1917|protocol|map|flag|logo|document|poster|interior|office|facade|station|airport|hotel|diagram|chart|sign|memorial)\b/i;
+  const positiveTerms = /\b(skyline|waterfront|harbour|harbor|landmark|landscape|downtown|city|centre|center|park|square|view)\b/i;
+  const normalizedName = fullName.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const addCandidate = (candidate, rankText='') => {
+    if(!candidate.url || !/^https:\/\//i.test(candidate.url) || seen.has(candidate.url)) return;
+    const text = `${candidate.title || ''} ${candidate.description || ''} ${rankText}`;
+    if(rejectedTerms.test(text)) return;
+    const normalizedText = text.toLowerCase();
+    let score = 0;
+    if(normalizedText.includes(normalizedName)) score += 10;
+    if(normalizedText.includes(cityName.toLowerCase())) score += 6;
+    if(positiveTerms.test(text)) score += 4;
+    if(candidate.width && candidate.height){
+      if(candidate.width >= 800 && candidate.height >= 450) score += 2;
+      if(candidate.width / candidate.height >= 1.15 && candidate.width / candidate.height <= 2.4) score += 2;
+    }
+    candidate.score = score;
+    seen.add(candidate.url);
+    candidates.push(candidate);
+  };
+
+  const wikipediaParams = new URLSearchParams({
+    action: 'query', generator: 'search', gsrsearch: fullName, gsrnamespace: '0', gsrlimit: '10',
+    prop: 'pageimages|info', piprop: 'original|thumbnail', pithumbsize: '900', inprop: 'url', format: 'json', origin: '*'
+  });
+  try {
+    const wikipediaRes = await fetchWithTimeout('https://en.wikipedia.org/w/api.php?' + wikipediaParams);
+    if(wikipediaRes.ok){
+      const wikipediaData = await wikipediaRes.json();
+      const pages = wikipediaData && wikipediaData.query && wikipediaData.query.pages ? Object.values(wikipediaData.query.pages) : [];
+      pages.forEach(page => {
+        const image = page.original || page.thumbnail;
+        if(!image || !image.source) return;
+        addCandidate({
+          url: image.source,
+          sourceUrl: page.fullurl && /^https:\/\//i.test(page.fullurl) ? page.fullurl : null,
+          title: page.title || cityName,
+          sourceType: 'Wikipedia', artist: '', width: image.width, height: image.height
+        }, page.title || '');
+      });
+    }
+  } catch(err) {
+    if(err.name === 'AbortError') timedOut = true;
+  }
+
+  const commonsParams = new URLSearchParams({
+    action: 'query', generator: 'search',
+    gsrsearch: searchName + ' (landscape OR skyline OR waterfront OR landmark)',
+    gsrnamespace: '6', gsrlimit: '30', prop: 'imageinfo',
+    iiprop: 'url|extmetadata|size|mime|mediatype', iiurlwidth: '900', format: 'json', origin: '*'
+  });
+  try {
+    const res = await fetchWithTimeout('https://commons.wikimedia.org/w/api.php?' + commonsParams);
+    if(res.ok){
+      const data = await res.json();
+      const pages = data && data.query && data.query.pages ? Object.values(data.query.pages) : [];
+      pages.forEach(page => {
+        const info = page.imageinfo && page.imageinfo[0];
+        if(!info || info.mediatype !== 'BITMAP' || !info.thumburl) return;
+        const metadata = info.extmetadata || {};
+        addCandidate({
+          url: info.thumburl,
+          sourceUrl: info.descriptionurl && /^https:\/\//i.test(info.descriptionurl) ? info.descriptionurl : null,
+          title: page.title ? page.title.replace(/^File:/, '') : 'Wikimedia Commons image',
+          sourceType: 'Wikimedia Commons',
+          artist: metadata.Artist && metadata.Artist.value ? metadata.Artist.value.replace(/<[^>]*>/g, '') : '',
+          description: metadata.ImageDescription && metadata.ImageDescription.value ? metadata.ImageDescription.value.replace(/<[^>]*>/g, '') : '',
+          width: info.width, height: info.height
+        }, page.title || '');
+      });
+    }
+  } catch(err) {
+    if(err.name === 'AbortError') timedOut = true;
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  if(!candidates.length) throw new Error(timedOut ? 'Image lookup timed out' : 'No image found');
+  return candidates.slice(0, 4);
 }
 
 /* ============================================================
@@ -2341,8 +2444,11 @@ function openAddEditModal(destId){
   };
   const workingRatings = Object.assign({}, dest.ratings);
   let workingImage = dest.image;
+  let workingImageSource = dest.imageSource || null;
+  let workingImageCandidates = [];
   let workingLat = dest.location.lat;
   let workingLong = dest.location.long;
+  let lookupRequest = 0;
 
   const backdrop = el(`<div class="modal-backdrop"></div>`);
   const modal = el(`
@@ -2366,8 +2472,13 @@ function openAddEditModal(destId){
           </div>
         </div>
         <div class="form-group">
-          <label>Image</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <label style="margin:0;">Image</label>
+            ${isEdit ? `<button type="button" class="btn btn-secondary" id="f-image-find" style="padding:6px 10px;font-size:12px;">Find images</button>` : ''}
+          </div>
           <div class="image-drop" id="f-image-drop">${workingImage ? `<img src="${workingImage}">` : 'Click to upload a photo'}</div>
+          <div class="image-candidates" id="f-image-candidates"></div>
+          <div class="geocode-status" id="f-image-status"></div>
           <input type="file" id="f-image-file" accept="image/*" style="display:none">
         </div>
         <div class="form-grid-2">
@@ -2426,12 +2537,75 @@ function openAddEditModal(destId){
     ratingsWrap.appendChild(row);
   });
 
+  function renderImageCandidates(){
+    const candidatesWrap = modal.querySelector('#f-image-candidates');
+    candidatesWrap.innerHTML = workingImageCandidates.map((candidate, index) => `
+      <button type="button" class="image-candidate ${candidate.url === workingImage ? 'selected' : ''}" data-image-index="${index}" aria-label="Use image ${index + 1}: ${escapeHtml(candidate.title || 'Suggested destination image')}" aria-pressed="${candidate.url === workingImage}">
+        <img src="${escapeHtml(candidate.url)}" alt="${escapeHtml(candidate.title || 'Suggested destination image')}">
+        <span>${escapeHtml(candidate.title)}</span>
+      </button>
+    `).join('');
+    candidatesWrap.querySelectorAll('[data-image-index]').forEach(button => {
+      const image = button.querySelector('img');
+      image.onerror = () => {
+        button.disabled = true;
+        button.classList.add('unavailable');
+        image.alt = 'Image unavailable';
+      };
+      button.onclick = () => {
+        const candidate = workingImageCandidates[parseInt(button.dataset.imageIndex, 10)];
+        if(!candidate) return;
+        workingImage = candidate.url;
+        workingImageSource = candidate;
+        modal.querySelector('#f-image-drop').innerHTML = `<img src="${escapeHtml(workingImage)}" alt="${escapeHtml(candidate.title || 'Selected destination image')}">`;
+        modal.querySelector('#f-image-status').textContent = 'Image selected. You can choose another or upload your own.';
+        modal.querySelector('#f-image-status').className = 'geocode-status ok';
+        renderImageCandidates();
+      };
+    });
+  }
+
+  async function findImages(){
+    const name = modal.querySelector('#f-name').value.trim();
+    const imageStatus = modal.querySelector('#f-image-status');
+    if(!name){
+      imageStatus.textContent = 'Enter a destination name first.';
+      imageStatus.className = 'geocode-status err';
+      return;
+    }
+    const requestId = ++lookupRequest;
+    const findButton = modal.querySelector('#f-image-find');
+    if(findButton) findButton.disabled = true;
+    workingImageCandidates = [];
+    renderImageCandidates();
+    imageStatus.textContent = 'Finding image options…';
+    imageStatus.className = 'geocode-status';
+    try {
+      const images = await fetchCityImageCandidates(name);
+      if(requestId !== lookupRequest) return;
+      workingImageCandidates = images;
+      imageStatus.textContent = `${images.length} image${images.length === 1 ? '' : 's'} found. Choose one below.`;
+      imageStatus.className = 'geocode-status ok';
+      renderImageCandidates();
+    } catch(err){
+      if(requestId !== lookupRequest) return;
+      imageStatus.textContent = err.message === 'Image lookup timed out' ? 'Image lookup timed out. Try again or upload a photo.' : 'No city images found. You can upload one instead.';
+      imageStatus.className = 'geocode-status';
+    } finally {
+      if(requestId === lookupRequest && findButton) findButton.disabled = false;
+    }
+  }
+
   // Image upload
   modal.querySelector('#f-image-drop').onclick = () => modal.querySelector('#f-image-file').click();
   modal.querySelector('#f-image-file').onchange = async (e) => {
     const file = e.target.files[0];
     if(!file) return;
+    lookupRequest++;
+    workingImageCandidates = [];
+    workingImageSource = null;
     const dropEl = modal.querySelector('#f-image-drop');
+    renderImageCandidates();
     dropEl.textContent = 'Processing image…';
     try {
       workingImage = await resizeImageFile(file);
@@ -2440,25 +2614,65 @@ function openAddEditModal(destId){
       dropEl.textContent = 'Could not read that image. Try another file.';
     }
   };
+  if(isEdit) modal.querySelector('#f-image-find').onclick = findImages;
 
   // Geocode lookup — uses the Name field directly
   modal.querySelector('#f-loc-lookup').onclick = async () => {
     const name = modal.querySelector('#f-name').value.trim();
     const status = modal.querySelector('#f-loc-status');
+    const imageStatus = modal.querySelector('#f-image-status');
+    const lookupButton = modal.querySelector('#f-loc-lookup');
     if(!name){ status.textContent = 'Enter a destination name first.'; status.className = 'geocode-status err'; return; }
+    const requestId = ++lookupRequest;
+    lookupButton.disabled = true;
+    workingImageCandidates = [];
+    if(!isEdit){
+      workingImage = null;
+      workingImageSource = null;
+      modal.querySelector('#f-image-drop').textContent = 'Choose an image below or upload a photo';
+    }
+    renderImageCandidates();
     status.textContent = 'Looking up location…';
     status.className = 'geocode-status';
+    imageStatus.textContent = 'Finding a city image…';
+    imageStatus.className = 'geocode-status';
     try {
       const loc = await geocodeLocation(name);
+      if(requestId !== lookupRequest) return;
       modal.querySelector('#f-lat').value = loc.lat;
       modal.querySelector('#f-long').value = loc.long;
       workingLat = loc.lat;
       workingLong = loc.long;
       status.textContent = 'Coordinates filled in below.';
       status.className = 'geocode-status ok';
+      if(!isEdit){
+        try {
+          const images = await fetchCityImageCandidates(name);
+          if(requestId !== lookupRequest) return;
+          workingImageCandidates = images;
+          workingImage = null;
+          workingImageSource = null;
+          modal.querySelector('#f-image-drop').textContent = 'Choose an image below or upload a photo';
+          renderImageCandidates();
+          imageStatus.textContent = `${images.length} image${images.length === 1 ? '' : 's'} found. Choose one below.`;
+          imageStatus.className = 'geocode-status ok';
+        } catch(err){
+          if(requestId !== lookupRequest) return;
+          imageStatus.textContent = err.message === 'Image lookup timed out' ? 'Image lookup timed out. You can upload one instead.' : 'No city image found. You can upload one instead.';
+          imageStatus.className = 'geocode-status';
+        }
+      } else {
+        imageStatus.textContent = 'Existing image preserved. Upload a replacement if needed.';
+        imageStatus.className = 'geocode-status';
+      }
     } catch(err){
-      status.textContent = "Couldn't find that location. Could be no internet, an unrecognized name, or a rate limit. Enter coordinates manually below.";
+      if(requestId !== lookupRequest) return;
+      status.textContent = err.name === 'AbortError' ? 'Location lookup timed out. Enter coordinates manually below.' : "Couldn't find that location. Could be no internet, an unrecognized name, or a rate limit. Enter coordinates manually below.";
       status.className = 'geocode-status err';
+      imageStatus.textContent = 'Image lookup skipped until the location is found.';
+      imageStatus.className = 'geocode-status';
+    } finally {
+      if(requestId === lookupRequest) lookupButton.disabled = false;
     }
   };
 
@@ -2487,6 +2701,7 @@ function openAddEditModal(destId){
     dest.season = seasonSel.value;
     dest.cost = parseInt(modal.querySelector('#f-cost').value, 10);
     dest.image = workingImage;
+    dest.imageSource = workingImageSource;
     dest.location = { lat: isNaN(lat) ? null : lat, long: isNaN(long) ? null : long };
     dest.ratings = workingRatings;
     dest.visited = modal.querySelector('#f-visited').checked;
@@ -2534,6 +2749,7 @@ function openDetailModal(destId){
       </div>
       <div class="modal-body">
         <div class="detail-hero" style="${dest.image?`background-image:url(${dest.image})`:''}"></div>
+        ${dest.imageSource ? `<p style="font-size:11.5px;color:var(--text-secondary);margin:6px 0 14px;">Photo: ${dest.imageSource.sourceUrl ? `<a href="${escapeHtml(dest.imageSource.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(dest.imageSource.title || 'Wikimedia Commons')}</a>` : escapeHtml(dest.imageSource.title || 'Wikimedia Commons')}${dest.imageSource.artist ? ` by ${escapeHtml(dest.imageSource.artist)}` : ''}</p>` : ''}
         <div class="detail-tags">
           <span class="tag">${dest.season || '-'}</span>
           <span class="tag">${'$'.repeat(dest.cost || 0) || '-'}</span>
