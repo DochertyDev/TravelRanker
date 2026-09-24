@@ -35,7 +35,46 @@
     --status-planning: #64d2ff;
     --status-in-progress: #ff9f0a;
     --status-completed: #30d158;
+    color-scheme: light;
   }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #151619;
+    --surface: #202226;
+    --surface-alt: #191b1f;
+    --border: #383b42;
+    --text: #f2f2f4;
+    --text-secondary: #a5a7af;
+    --accent: #69adff;
+    --accent-soft: #202f42;
+    --danger: #ff716b;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.28);
+    --shadow-md: 0 6px 20px rgba(0,0,0,0.34);
+    --shadow-lg: 0 20px 50px rgba(0,0,0,0.55);
+  }
+  :root[data-theme="dark"] .tabbar { background: rgba(25,27,31,0.94); }
+  :root[data-theme="dark"] .nav-item:hover,
+  :root[data-theme="dark"] .sidebar-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+  :root[data-theme="dark"] .dest-card .thumb,
+  :root[data-theme="dark"] .match-row .thumb-sm,
+  :root[data-theme="dark"] .history-entry .thumb-sm,
+  :root[data-theme="dark"] .timeline-thumb,
+  :root[data-theme="dark"] .trip-thumb,
+  :root[data-theme="dark"] .trip-stop-thumb,
+  :root[data-theme="dark"] .tier-list-view-row .tlv-thumb,
+  :root[data-theme="dark"] .detail-hero { background-image: linear-gradient(135deg, #30333a, #25282e); }
+  :root[data-theme="dark"] .visited-badge { background: rgba(32,34,38,0.96); }
+  :root[data-theme="dark"] .rank-badge,
+  :root[data-theme="dark"] .card-delete-btn { background-color: rgba(0,0,0,0.78); }
+  :root[data-theme="dark"] .icon-btn:hover { background: #492b2b; color: var(--danger); }
+  :root[data-theme="dark"] .btn-danger { background: #492b2b; color: #ff918b; }
+  :root[data-theme="dark"] .tier-drop.empty::before { color: #777b85; }
+  :root[data-theme="dark"] .trip-status-badge.status-planning { background: #17627a; }
+  :root[data-theme="dark"] .trip-status-badge.status-in-progress { background: #80520b; }
+  :root[data-theme="dark"] .trip-status-badge.status-completed { background: #176b39; }
+  :root[data-theme="dark"] .status-msg.ok { color: #65d990; }
+  :root[data-theme="dark"] .tag[style*="background:#e6f7ea"] { background: #183c28 !important; color: #76e29b !important; }
 
   * { box-sizing: border-box; }
 
@@ -121,7 +160,24 @@
   .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
 
   .nav-spacer { flex: 1; }
-
+  .theme-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 38px; padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--surface); color: var(--text-secondary);
+    font-size: 13px; font-weight: 600;
+  }
+  .theme-toggle:hover { color: var(--text); background: var(--bg); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sidebar .theme-toggle { margin: 8px 4px 0; }
+  .mobile-theme-control { display: none; }
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .tabbar { display: flex; }
+    main { padding: 20px 16px 84px 16px; }
+    .mobile-theme-control { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+    .mobile-theme-control .theme-toggle { min-height: 36px; padding: 7px 11px; }
+  }
   main {
     flex: 1;
     padding: 32px 40px 90px 40px;
@@ -913,6 +969,15 @@
   .tier-list-view-row .tlv-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tier-list-view-row .tlv-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .tier-list-view-row .tlv-dist { font-size: 12px; color: var(--text-secondary); width: 130px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  :root[data-theme="dark"] .stars,
+  :root[data-theme="dark"] .timeline-stars,
+  :root[data-theme="dark"] .star-picker button.filled { color: #ffd166; }
+  :root[data-theme="dark"] .cost-dots span.filled { background: #ffcb55; }
+  :root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #555963; }
+  :root[data-theme="dark"] ::-webkit-scrollbar-track { background: #191b1f; }
+  :root[data-theme="dark"] select,
+  :root[data-theme="dark"] input,
+  :root[data-theme="dark"] textarea { color: var(--text); }
   .tlv-actions {
     display: flex;
     align-items: center;
@@ -952,6 +1017,7 @@
    DATA LAYER
    ============================================================ */
 const STORAGE_KEY = 'travel_ranker_data_v1';
+const THEME_STORAGE_KEY = 'travel_ranker_theme_v1';
 const TIERS = ['S','A','B','C','D','F'];
 const SEASONS = ['Spring','Summer','Fall','Winter','Year-round'];
 const RATING_CATEGORIES = [
@@ -1176,6 +1242,9 @@ function resizeImageFile(file, maxDim=1200, quality=0.82){
    APP STATE / ROUTER
    ============================================================ */
 let currentView = 'tierlist';
+let theme = safeGetItem(THEME_STORAGE_KEY, 'light');
+if(theme !== 'dark' && theme !== 'light') theme = 'light';
+document.documentElement.dataset.theme = theme;
 let modalStack = [];
 let modalFocusStack = [];
 function safeGetItem(key, fallback){
@@ -1188,6 +1257,18 @@ function safeSetItem(key, value){
 }
 let sidebarCollapsed = safeGetItem('travel_ranker_sidebar_collapsed', 'false') === 'true';
 let tierListViewMode = safeGetItem('travel_ranker_tierlist_view', 'grid'); // 'grid' | 'list'
+
+function toggleTheme(){
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  safeSetItem(THEME_STORAGE_KEY, theme);
+  render();
+}
+
+function themeToggle(){
+  const dark = theme === 'dark';
+  return `<button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to ${dark ? 'light' : 'dark'} mode" aria-pressed="${dark}"><span aria-hidden="true">${dark ? '☀' : '☾'}</span><span>${dark ? 'Light mode' : 'Dark mode'}</span></button>`;
+}
 
 function setView(v){
   currentView = v;
@@ -1298,6 +1379,7 @@ function render(){
       ${navItem('trips', ICONS.trips, 'Trips')}
       ${navItem('history', ICONS.history, 'History')}
       <div class="nav-spacer"></div>
+      ${themeToggle()}
       ${navItem('settings', ICONS.settings, 'Settings')}
     </div>
   `);
@@ -1305,6 +1387,7 @@ function render(){
   app.appendChild(sidebar);
 
   const main = el(`<main></main>`);
+  main.appendChild(el(`<div class="mobile-theme-control">${themeToggle()}</div>`));
   main.appendChild(renderCurrentView());
   app.appendChild(main);
 
@@ -1341,6 +1424,7 @@ function fabConfig(){
 
 // Delegate nav clicks after render via event delegation on document
 document.addEventListener('click', (e) => {
+  if(e.target.closest('[data-theme-toggle]')){ toggleTheme(); return; }
   const navBtn = e.target.closest('[data-view]');
   if(navBtn){ setView(navBtn.getAttribute('data-view')); }
 });
